@@ -132,7 +132,7 @@ exports.pageCrawl = async (config) => {
       else
         // 点击翻页
         button.click();
-    }, typeof (config.next) == 'string' ? config.next : config.next(pageCount))
+    }, typeof (config.next) == 'string' ? config.next : config.next(pageCount, page))
     // 不能下一页，结束爬行
     if (over)
       break;
