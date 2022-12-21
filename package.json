@@ -1,0 +1,19 @@
+{
+  "name": "@yamiwamiyu/nodejs-crawl",
+  "version": "1.0.0",
+  "description": "Webpage crawler using puppeteer",
+  "main": "index.js",
+  "scripts": {
+    "test": "node crawler/__test.js"
+  },
+  "keywords": [
+    "puppeteer",
+    "crawl"
+  ],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "axios": "^1.2.1",
+    "puppeteer": "^19.4.1"
+  }
+}

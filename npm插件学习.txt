@@ -1,0 +1,40 @@
+npm官网文档：https://docs.npmjs.com/creating-node-js-modules/#create-a-package-json-file
+
+1. 新建项目文件夹，cmd到文件夹下，npm init创建package.json
+2. 新建index.js脚本文件，exports.[field] = [value]可以让field被引用
+3. 测试代码可以使用node index.js命令，发布代码使用npm publish(私用，要收费)或npm publish --access public(公用)
+4. 引用自己的插件npm install <your-module-name>，新建js脚本引入即可使用，import {field} from "<your-module-name>"
+
+P.S.
+1. 入口脚本可以改名，改名后在package.json > main可以修改
+2. 脚本要使用import而不是require的话，需要在package.json增加"type": "module"
+3. 首次发布插件需要先登录npm login
+
+
+// node -v v16.17.0
+// npm -v 8.15.0
+
+
+puppeteer学习日记
+npm官方地址：https://www.npmjs.com/package/puppeteer
+官方文档：https://pptr.dev/
+主要用法如下
+import puppeteer from 'puppeteer-core'(已有Chrome浏览器) | 'puppeteer'(自动下载的Chromium浏览器);
+1. 获取浏览器browser
+   启动一个新实例：puppeteer.launch({
+     headless: true,  // true: 无UI界面 / false: 弹出浏览器界面
+     executablePath: "C:/Program Files (x86)/Google/Chrome/Application/chrome.exe", // 已有Chrome浏览器时浏览器的运行路径
+   })
+   连接一个已开实例：puppeteer.connect({
+     // 带参数--remote-debugging-port=9222运行chrome.exe，可以用快捷方式 -> 属性 -> 目标，或者cmd方式运行
+     // 浏览器地址输入http://127.0.0.1:9222/json/version，可看见一个json对象，webSocketDebuggerUrl就是目标值
+     browserWSEndpoint: "ws://127.0.0.1:9222/devtools/browser/fd848984-50fb-4ebb-9236-a8c62d6cb0a9",
+   })
+2. 获取页面page
+   获取所有页签：const pages = await browser.pages()
+   可通过find方法根据url找到目标页签：const page = pages.find(i => return i.url().startsWith('<your url>'))
+   新开启一个页签：const page = await browser.newPage()
+3. 页面操作
+   修改url：await page.goto(url)
+   等待页面加载成功：await page.waitFor***，常用等待某个dom加载完成await page.waitForSelector("选择器", {timeout: 0});
+   执行js：await page.evaluate(() => { ...js代码，相当于Chrome F12的Console，return 结果 })
