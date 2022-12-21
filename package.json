@@ -4,7 +4,7 @@
   "description": "Webpage crawler using puppeteer",
   "main": "index.js",
   "scripts": {
-    "test": "node crawler/__test.js"
+    "test": "node crawler/__example.js"
   },
   "keywords": [
     "puppeteer",
