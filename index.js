@@ -105,7 +105,7 @@ exports.pageCrawl = async (config) => {
         return;
       // 获取数据
       const json = await r.json();
-      const data = config.json(data);
+      const data = config.json(json);
       if (config.ondata)
         config.ondata(data, r.url());
       // 将获取到的数组数据存起来
@@ -169,4 +169,71 @@ exports.pageCrawl = async (config) => {
 
   await browser.close();
   // exit();
+}
+exports.xhrCrawl = async (config) => {
+  config = Object.assign({
+    method: "GET",
+    queue: 4,
+  }, config);
+  // 多个一起并发，但是按顺序回调ondata
+  const queue = [];
+  const datas = [];
+  const all = [];
+  let on = 0;
+  let i = 0;
+  let handle;
+  const query = (j) => {
+    if (i >= config.datas.length)
+      return;
+    queue[j] = {
+      promise: new Promise(resolve => {
+        axios({
+          method: config.method,
+          url: config.url,
+          headers: config.headers,
+          params: config.method == "GET" ? config.datas[i] : undefined,
+          data: config.method == "GET" ? undefined : config.datas[i],
+        }).then(i => {
+          datas[queue[j].i] = i.data;
+          if (queue[j].i == on) {
+            while (datas[on]) {
+              const temp = config.json(datas[on]);
+              all.push(...temp);
+              if (config.ondata)
+                config.ondata(data, config.datas[queue[j].i]);
+              console.log("Crawling", all.length);
+              on++;
+            }
+            if (on == config.datas.length)
+              handle();
+          }
+          query(j);
+        }).finally(() => {
+          resolve();
+        })
+      }),
+      i: i,
+    };
+    i++;
+  };
+
+  for (let j = 0; j < config.queue; j++)
+    query(j);
+
+  await new Promise(resolve => handle = resolve);
+
+  console.log("Complete!");
+  // 拉取完毕，将数据写入文件
+  let file = config.output;
+  if (file) {
+    file.substring(0, file.indexOf('.'));
+    if (config.csv) {
+      file += ".csv";
+      exports.saveCSV(file, all);
+    } else {
+      file += ".json";
+      fs.writeFileSync(file, JSON.stringify(all));
+    }
+    console.log("Save ->", file);
+  }
 }

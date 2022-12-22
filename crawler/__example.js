@@ -1,7 +1,8 @@
-const { getBrowser, pageCrawl, writeCSVLines } = require('../index');
+const { getBrowser, pageCrawl, writeCSVLines, xhrCrawl } = require('../index');
 const fs = require('fs');
 const path = require('path');
 const axios = require('axios');
+const { resolve } = require('path');
 
 // 示例1: 翻页从接口获取数据
 exports.example1 = async () => {
@@ -109,8 +110,29 @@ exports.example2 = async () => {
 }
 
 // 示例3: 直接发接口获取数据
-exports.example3 = async () => {
-
+exports.example3 = async (config) => {
+  const datas = [];
+  for (let i = 2; i <= 10; i++) {
+    datas.push({
+      service_id: 'lgc_service_18',
+      brand_id: 'lgc_game_2299',
+      sort: 'most_recent',
+      page: i,
+      page_size: 48,
+      currency: 'CNY',
+      country: 'CN',
+    })
+  }
+  (async () => {
+    await xhrCrawl({
+      method: "GET",
+      url: "https://sls.g2g.com/offer/search",
+      datas,
+      json: (i) => i.payload.results,
+      output: __filename,
+      csv: true,
+    });
+  })()
 }
 
 // 示例4: 使用封装好的翻页爬虫
@@ -206,6 +228,7 @@ exports.example5 = async () => {
 // 测试
 // require('./www.g2g.com');
 // require('./futcoin.net');
+exports.example3();
 
 // 下载css里的图片文件
 // axios.get("https://cdn.jsdelivr.net/gh/lipis/flag-icons@6.6.6/css/flag-icons.min.css").then(ret => {
