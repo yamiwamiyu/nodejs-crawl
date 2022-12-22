@@ -7,7 +7,7 @@ pageCrawl({
   // 采集地址
   url: "https://futcoin.net/en/reviews",
   // 等待页面渲染完成的关键DOM元素的selector
-  wait: ".fc-comment",
+  wait: ".fc-comment .uk-first-column .uk-text-left",
   // 从页面采集数据
   dom: () => {
     var array = [];

@@ -56,22 +56,31 @@ function toCSVString(str) {
   else
     return str;
 }
+// 将一个对象转换成一行CSV格式的字符串数据(末尾包含换行)
+exports.writeCSVLine = (data) => {
+  const temp = [];
+  for (const t in data)
+    temp.push(toCSVString(data[t]));
+  return temp.join(',') + "\r\n";
+}
+// 将一个对象数组转换成多行CSV格式的字符串数据(末尾包含换行)，传入array:string[]可以让数据往array末尾追加
+exports.writeCSVLines = (datas, array) => {
+  if (!array)
+    array = [];
+  for (const item of datas)
+    array.push(exports.writeCSVLine(item));
+  return array.join("");
+}
 // 将数组内的对象数据保存成csv
-// file: save file path
 exports.saveCSV = (file, datas) => {
   if (!datas?.length) return;
   const array = [];
   const temp = [];
+  // 表头
   for (const title in datas[0])
     temp.push(toCSVString(title));
-  array.push(temp.join(','));
-  for (const item of datas) {
-    temp.length = 0;
-    for (const t in item)
-      temp.push(toCSVString(item[t]));
-    array.push(temp.join(','));
-  }
-  const result = array.join("\r\n");
+  array.push(temp.join(',') + "\r\n");
+  const result = exports.writeCSVLines(datas, array);
   fs.writeFileSync(file, result);
 }
 // 翻页爬行
@@ -95,9 +104,12 @@ exports.pageCrawl = async (config) => {
       if (r.url().indexOf(config.request) < 0)
         return;
       // 获取数据
-      const data = await r.json();
+      const json = await r.json();
+      const data = config.json(data);
+      if (config.ondata)
+        config.ondata(data, r.url());
       // 将获取到的数组数据存起来
-      datas.push(...config.json(data));
+      datas.push(...data);
       console.log("Crawling", datas.length);
       // 通知可以翻页
       turning();
@@ -117,6 +129,8 @@ exports.pageCrawl = async (config) => {
     if (config.dom) {
       // 从页面获取数据
       const data = await page.evaluate(config.dom);
+      if (config.ondata)
+        config.ondata(data, page.url());
       datas.push(...data);
       console.log("Crawling", datas.length);
       pageCount++;

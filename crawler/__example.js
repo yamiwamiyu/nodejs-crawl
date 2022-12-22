@@ -1,4 +1,4 @@
-const { getBrowser, pageCrawl } = require('../index');
+const { getBrowser, pageCrawl, writeCSVLines } = require('../index');
 const fs = require('fs');
 const path = require('path');
 const axios = require('axios');
@@ -153,6 +153,9 @@ exports.example4 = async () => {
         return;
       return ".next-button-selector";
     },
+    ondata: (data, url) => {
+      console.log("当前页", url, "采集到了数据", data.length, "条");
+    },
 
     // 接口采集 ↓ (接口必须是返回json格式数据，否则请简单修改源码部分)
 
@@ -184,7 +187,20 @@ exports.example4 = async () => {
 
 // 示例5: 一边拉取数据一边保存，下次从上次拉取到的位置继续
 exports.example5 = async () => {
+  const file = __dirname + "/data.csv"
+  // 没有数据文件则先创建数据文件
+  if (!fs.existsSync(file))
+    fs.writeFileSync(file, "");
+  pageCrawl({
+    // ... 其它参数设置
 
+    // 不再对最终采集到的所有数据进行文件输出
+    output: '',
+    // 采集到一页数据后就追加到数据文件末尾
+    ondata(data) {
+      fs.appendFileSync(file, writeCSVLines(data));
+    },
+  })
 }
 
 // 测试

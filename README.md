@@ -65,6 +65,10 @@ pageCrawl({
         return;
       return ".next-button-selector";
     },
+    // 每采集到一页数据时回调
+    ondata: (data, url) => {
+      console.log("当前页", url, "采集到的数据", data);
+    },
 
     // 接口采集 ↓ (接口必须是返回json格式数据，否则请简单修改源码部分)
 
@@ -92,4 +96,91 @@ pageCrawl({
       return data;
     },
   })
+```
+
+#### 实战使用示例
+
+1.  通过接口获取数据
+
+```
+const { pageCrawl } = require('@yamiwamiyu/nodejs-crawl');
+
+pageCrawl({
+  output: __filename,
+  // 接口地址
+  request: "offer/search?",
+  // json数据
+  json: (i) => i.payload.results,
+  url: "https://www.g2g.com/categories/wow-boosting-service?sort=most_recent",
+  next: (i) => {
+    // 测试只采集2页
+    if (i == 2)
+      return;
+    return '.q-pagination>button:last-child';
+  },
+})
+```
+
+2.  通过页面获取数据
+```
+const { pageCrawl } = require('@yamiwamiyu/nodejs-crawl');
+
+pageCrawl({
+  output: __filename,
+  url: "https://futcoin.net/en/reviews",
+  // 等待页面渲染完成的关键DOM元素的selector
+  wait: ".fc-comment .uk-first-column .uk-text-left",
+  // 从页面采集数据
+  dom: () => {
+    var array = [];
+    var comments = document.querySelectorAll(".fc-comment");
+    for (var c of comments) {
+      array.push({
+        'user': c.querySelector(".uk-first-column .uk-text-left").innerText,
+        'nation': ((i) => {
+          var index = i.lastIndexOf('/') + 1;
+          return i.substring(index, index + 2).toUpperCase();
+        })(c.querySelector(".uk-first-column [data-uk-img]").dataset.src),
+        'time': c.querySelector(".uk-first-column .uk-text-muted").innerText,
+        'coin': ((i) => {
+          return i = i.substring(1, i.indexOf(' ', 1)).replaceAll(',', '');
+        })(c.querySelector(".uk-width-expand .uk-first-column").innerText),
+        'platform': c.querySelector(".uk-width-expand .uk-text-nowrap").innerText,
+        'star': c.querySelector(".fc-comment-rating").querySelectorAll(".fc-icon-star").length,
+        'content': c.querySelector(".uk-card>.uk-text-left").innerText,
+      })
+    }
+    return array;
+  },
+  next: (i) => {
+    // 测试只采集2页
+    if (i == 2)
+      return;
+    return '[data-uk-icon="arrow-right"]';
+  },
+  // 输出成csv
+  csv: true,
+})
+```
+
+3.  一边拉取数据一边保存，下次从上次拉取到的位置继续
+```
+const { pageCrawl, writeCSVLines } = require('@yamiwamiyu/nodejs-crawl');
+const fs = require('fs');
+
+const file = __dirname + "/data.csv"
+// 没有数据文件则先创建数据文件
+if (!fs.existsSync(file))
+  fs.writeFileSync(file, "");
+pageCrawl({
+  // ... 其它参数设置
+
+  // 不再对最终采集到的所有数据进行文件输出
+  output: '',
+  // 采集到一页数据后就追加到数据文件末尾
+  ondata(data) {
+    fs.appendFileSync(file, writeCSVLines(data));
+  },
+})
+
 ```
