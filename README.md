@@ -24,6 +24,8 @@ npm i @yamiwamiyu/nodejs-crawl
 
 #### 使用和参数说明
 
+1.  翻页爬行采集
+
 ```
 const { pageCrawl } = require('@yamiwamiyu/nodejs-crawl');
 
@@ -96,6 +98,54 @@ pageCrawl({
       return data;
     },
   })
+```
+
+2.  直接接口采集
+```
+const { xhrCrawl } = require('@yamiwamiyu/nodejs-crawl');
+
+// 循环构建每页的接口参数
+const datas = [];
+for (let i = 1; i <= 2; i++) {
+  datas.push({
+    service_id: 'lgc_service_18',
+    brand_id: 'lgc_game_2299',
+    sort: 'most_recent',
+    page: i,
+    page_size: 48,
+    currency: 'CNY',
+    country: 'CN',
+  })
+}
+// 发起接口拉取数据
+await xhrCrawl({
+  // 接口并发的数量，默认4
+  queue: 4,
+  // GET或POST，默认GET
+  method: "GET",
+  // HTTP请求头
+  headers: {
+    header1: "value1",
+    header2: "value2",
+  },
+  // * 需要采集的每页的接口参数
+  datas: datas,
+
+  // 以下参数均和 pageCrawl 方法的参数一致
+
+  // * 接口地址
+  url: "https://sls.g2g.com/offer/search",
+  // * 请根据接口返回的json数据，返回最终的数据数组
+  json: (i) => i.payload.results,
+  // 每采集到一页数据时回调
+  ondata: (data, param) => {
+    console.log("当前接口参数", param, "采集到了数据", data.length, "条");
+  },
+  // * 采集的数据输出的文件名，不配置会不输出文件
+  output: __filename,
+  // 输出.csv文件，不配置默认输出.json文件
+  csv: true,
+});
 ```
 
 #### 实战使用示例
@@ -183,4 +233,31 @@ pageCrawl({
   },
 })
 
+```
+
+4. 直接接口并发采集，采集速度快
+
+```
+const { xhrCrawl } = require('@yamiwamiyu/nodejs-crawl');
+
+// 循环构建每页的接口参数
+const datas = [];
+for (let i = 1; i <= 2; i++) {
+  datas.push({
+    service_id: 'lgc_service_18',
+    brand_id: 'lgc_game_2299',
+    sort: 'most_recent',
+    page: i,
+    page_size: 48,
+    currency: 'CNY',
+    country: 'CN',
+  })
+}
+// 发起接口拉取数据
+await xhrCrawl({
+  datas,
+  url: "https://sls.g2g.com/offer/search",
+  json: (i) => i.payload.results,
+  output: __filename,
+});
 ```

@@ -152,30 +152,17 @@ exports.pageCrawl = async (config) => {
       break;
   }
 
-  console.log("Complete!");
-  // 拉取完毕，将数据写入文件
-  let file = config.output;
-  if (file) {
-    file.substring(0, file.indexOf('.'));
-    if (config.csv) {
-      file += ".csv";
-      exports.saveCSV(file, datas);
-    } else {
-      file += ".json";
-      fs.writeFileSync(file, JSON.stringify(datas));
-    }
-    console.log("Save ->", file);
-  }
+  crawlover(config, datas);
 
   await browser.close();
   // exit();
 }
+// 接口爬行
 exports.xhrCrawl = async (config) => {
   config = Object.assign({
     method: "GET",
     queue: 4,
   }, config);
-  // 多个一起并发，但是按顺序回调ondata
   const queue = [];
   const datas = [];
   const all = [];
@@ -196,11 +183,12 @@ exports.xhrCrawl = async (config) => {
         }).then(i => {
           datas[queue[j].i] = i.data;
           if (queue[j].i == on) {
+            // 按页数顺序回调接口
             while (datas[on]) {
               const temp = config.json(datas[on]);
               all.push(...temp);
               if (config.ondata)
-                config.ondata(data, config.datas[queue[j].i]);
+                config.ondata(temp, config.datas[on]);
               console.log("Crawling", all.length);
               on++;
             }
@@ -222,6 +210,9 @@ exports.xhrCrawl = async (config) => {
 
   await new Promise(resolve => handle = resolve);
 
+  crawlover(config, all);
+}
+function crawlover(config, datas) {
   console.log("Complete!");
   // 拉取完毕，将数据写入文件
   let file = config.output;
@@ -229,10 +220,10 @@ exports.xhrCrawl = async (config) => {
     file.substring(0, file.indexOf('.'));
     if (config.csv) {
       file += ".csv";
-      exports.saveCSV(file, all);
+      exports.saveCSV(file, datas);
     } else {
       file += ".json";
-      fs.writeFileSync(file, JSON.stringify(all));
+      fs.writeFileSync(file, JSON.stringify(datas));
     }
     console.log("Save ->", file);
   }

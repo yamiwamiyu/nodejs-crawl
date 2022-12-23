@@ -2,7 +2,6 @@ const { getBrowser, pageCrawl, writeCSVLines, xhrCrawl } = require('../index');
 const fs = require('fs');
 const path = require('path');
 const axios = require('axios');
-const { resolve } = require('path');
 
 // 示例1: 翻页从接口获取数据
 exports.example1 = async () => {
@@ -111,8 +110,9 @@ exports.example2 = async () => {
 
 // 示例3: 直接发接口获取数据
 exports.example3 = async (config) => {
+  // 循环构建每页的接口参数
   const datas = [];
-  for (let i = 2; i <= 10; i++) {
+  for (let i = 1; i <= 2; i++) {
     datas.push({
       service_id: 'lgc_service_18',
       brand_id: 'lgc_game_2299',
@@ -123,16 +123,35 @@ exports.example3 = async (config) => {
       country: 'CN',
     })
   }
-  (async () => {
-    await xhrCrawl({
-      method: "GET",
-      url: "https://sls.g2g.com/offer/search",
-      datas,
-      json: (i) => i.payload.results,
-      output: __filename,
-      csv: true,
-    });
-  })()
+  // 发起接口拉取数据
+  await xhrCrawl({
+    // 接口并发的数量，默认4
+    queue: 4,
+    // GET或POST，默认GET
+    method: "GET",
+    // HTTP请求头
+    headers: {
+      header1: "value1",
+      header2: "value2",
+    },
+    // * 需要采集的每页的接口参数
+    datas: datas,
+
+    // 以下参数均和 pageCrawl 方法的参数一致
+
+    // * 接口地址
+    url: "https://sls.g2g.com/offer/search",
+    // * 请根据接口返回的json数据，返回最终的数据数组
+    json: (i) => i.payload.results,
+    // 每采集到一页数据时回调
+    ondata: (data, param) => {
+      console.log("当前接口参数", param, "采集到了数据", data.length, "条");
+    },
+    // * 采集的数据输出的文件名，不配置会不输出文件
+    output: __filename,
+    // 输出.csv文件，不配置默认输出.json文件
+    csv: true,
+  });
 }
 
 // 示例4: 使用封装好的翻页爬虫
@@ -175,6 +194,7 @@ exports.example4 = async () => {
         return;
       return ".next-button-selector";
     },
+    // 每采集到一页数据时回调
     ondata: (data, url) => {
       console.log("当前页", url, "采集到了数据", data.length, "条");
     },
@@ -228,7 +248,7 @@ exports.example5 = async () => {
 // 测试
 // require('./www.g2g.com');
 // require('./futcoin.net');
-exports.example3();
+// exports.example3();
 
 // 下载css里的图片文件
 // axios.get("https://cdn.jsdelivr.net/gh/lipis/flag-icons@6.6.6/css/flag-icons.min.css").then(ret => {
