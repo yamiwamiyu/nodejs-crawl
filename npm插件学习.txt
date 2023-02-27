@@ -3,6 +3,7 @@ npm官网文档：https://docs.npmjs.com/creating-node-js-modules/#create-a-pack
 1. 新建项目文件夹，cmd到文件夹下，npm init创建package.json
 2. 新建index.js脚本文件，exports.[field] = [value]可以让field被引用
 3. 测试代码可以使用node index.js命令，发布代码使用npm publish(私用，要收费)或npm publish --access public(公用)
+(测试)可以使用npm link将包发布到本地，项目就可以通过npm install安装包来使用了
 4. 引用自己的插件npm install <your-module-name>，新建js脚本引入即可使用，import {field} from "<your-module-name>"
 
 P.S.
