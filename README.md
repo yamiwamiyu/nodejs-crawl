@@ -6,6 +6,7 @@
 #### 可爱的爬虫
 - 魔兽世界代练 https://www.g2g.com/categories/wow-boosting-service?sort=most_recent
 - FIFA金币站评论 https://futcoin.net/en/reviews
+- FIFA23球员背景卡及CSS https://www.futbin.com/players
 
 #### 获取爬虫
 1. 获取已有爬虫可关注git源码库

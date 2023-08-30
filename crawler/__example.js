@@ -272,3 +272,5 @@ exports.example5 = async () => {
 //     index = index2;
 //   }
 // })
+
+require('./www.futbin.com').fifa23css();

@@ -1,6 +1,6 @@
 {
   "name": "@yamiwamiyu/nodejs-crawl",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "Webpage crawler using puppeteer",
   "main": "index.js",
   "scripts": {

@@ -1,7 +1,30 @@
 const fs = require('fs');
 const axios = require('axios');
 const { exit } = require('process');
+const { Browser } = require('puppeteer');
 
+/**
+ * @typedef {object} config
+ * @property {string} [chrome] - 使用本地浏览器
+ * @property {number} [port] - 使用已经打开的 chrome 浏览器的远程调试端口
+ * @property {boolean} [headless] - 不显示浏览器
+ * @property {string} output - 采集的数据输出的文件名，不配置会不输出文件
+ * @property {boolean} [csv] - 输出.csv文件，不配置默认输出.json文件
+ * @property {string} url - 采集数据的目标网站url，地址打开应该可以采集到数据的第一页
+ * @property {string | function(number):(string | undefined)} next - 翻页按钮的DOM元素selector或下一页的URL，如果页面没有按钮或按钮禁用就会结束爬行，返回空时可以结束爬行
+ * @property {function(Record[], string):(Promise | undefined)} [ondata] - 每采集到一页数据时回调
+ * @property {string} request - 接口的url，包含部分即可，例如api/test
+ * @property {function(any):Record[]} json - 请根据接口返回的json数据，返回最终的数据数组
+ * @property {string} [wait] - 等待数据渲染完成的关键DOM元素的selector
+ * @property {function(any):Record[]} dom - 从页面采集数据，JS的DOM操作，最终返回数据数组(你应该到浏览器的调试工具控制台中先写好再粘贴到这里)
+ * @property {any} [pass] - dom 操作方法因为是在浏览器层面执行，pass 为需要传递的 node 变量
+ */
+
+/**
+ * 获取可操作的浏览器实例
+ * @param {config} config 
+ * @returns {Browser}
+ */
 exports.getBrowser = async function (config) {
   if (!config) config = {};
   let puppeteer = require('puppeteer-core');
@@ -10,6 +33,7 @@ exports.getBrowser = async function (config) {
     browser = await puppeteer.launch({
       headless: config.headless,
       executablePath: config.chrome,
+      timeout: 0,
       defaultViewport: null
     })
     console.log("Open chrome success!");
@@ -34,6 +58,7 @@ exports.getBrowser = async function (config) {
     } else {
       puppeteer = require('puppeteer');
       browser = await puppeteer.launch({
+        timeout: 0,
         headless: config.headless,
         defaultViewport: null
       });
@@ -56,14 +81,21 @@ function toCSVString(str) {
   else
     return str;
 }
-// 将一个对象转换成一行CSV格式的字符串数据(末尾包含换行)
+/** 将一个对象转换成一行CSV格式的字符串数据(末尾包含换行)
+ * @param {Record<string, string>} data
+ * @returns {string} - CSV 格式的一行字符串
+ */
 exports.writeCSVLine = (data) => {
   const temp = [];
   for (const t in data)
     temp.push(toCSVString(data[t]));
   return temp.join(',') + "\r\n";
 }
-// 将一个对象数组转换成多行CSV格式的字符串数据(末尾包含换行)，传入array:string[]可以让数据往array末尾追加
+/** 将一个对象数组转换成多行CSV格式的字符串数据(末尾包含换行)
+ * @param {Record<string, string>} datas 
+ * @param {string[]} [array] -可以让数据往数组末尾追加
+ * @returns {string} - CSV 格式的字符串
+ */
 exports.writeCSVLines = (datas, array) => {
   if (!array)
     array = [];
@@ -71,7 +103,10 @@ exports.writeCSVLines = (datas, array) => {
     array.push(exports.writeCSVLine(item));
   return array.join("");
 }
-// 将数组内的对象数据保存成csv
+/** 将数组内的对象数据保存成csv
+ * @param {string} file 
+ * @param {Record<string, string>} datas 
+ */
 exports.saveCSV = (file, datas) => {
   if (!datas?.length) return;
   const array = [];
@@ -83,7 +118,10 @@ exports.saveCSV = (file, datas) => {
   const result = exports.writeCSVLines(datas, array);
   fs.writeFileSync(file, result);
 }
-// 翻页爬行
+/**
+ * 翻页爬行
+ * @param {config} config
+ */
 exports.pageCrawl = async (config) => {
   // 翻页后确认已经获取到了数据则可以继续翻页
   let turning;
@@ -91,7 +129,7 @@ exports.pageCrawl = async (config) => {
   const datas = [];
   let browser = await exports.getBrowser(config);
   let page;
-  if (config.port)
+  if (config.port && !config.headless)
     page = (await browser.pages()).find(p => p.url().startsWith(config.url));
   if (!page)
     page = await browser.newPage();
@@ -106,11 +144,13 @@ exports.pageCrawl = async (config) => {
       // 获取数据
       const json = await r.json();
       const data = config.json(json);
-      if (config.ondata)
-        config.ondata(data, r.url());
-      // 将获取到的数组数据存起来
-      datas.push(...data);
-      console.log("Crawling", datas.length);
+      if (data) {
+        if (config.ondata)
+          await config.ondata(data, r.url());
+        // 将获取到的数组数据存起来
+        datas.push(...data);
+        console.log("Crawling", datas.length);
+      }
       // 通知可以翻页
       turning();
       pageCount++;
@@ -128,16 +168,23 @@ exports.pageCrawl = async (config) => {
     
     if (config.dom) {
       // 从页面获取数据
-      const data = await page.evaluate(config.dom);
-      if (config.ondata)
-        config.ondata(data, page.url());
-      datas.push(...data);
-      console.log("Crawling", datas.length);
-      pageCount++;
+      const data = await page.evaluate(config.dom, config.pass);
+      if (data) {
+        if (config.ondata)
+          await config.ondata(data, page.url());
+        datas.push(...data);
+        console.log("Crawling", datas.length);
+        pageCount++;
+      }
     }
     
     // 翻页 | 结束
     const over = await page.evaluate((next) => {
+      // 直接返回
+      if (next?.indexOf('/')) {
+        location.href = next;
+        return;
+      }
       // 获取下一页按钮
       const button = next && document.querySelector(next);
       // 不能翻页则结束
@@ -216,7 +263,7 @@ function crawlover(config, datas) {
   console.log("Complete!");
   // 拉取完毕，将数据写入文件
   let file = config.output;
-  if (file) {
+  if (file && datas) {
     file.substring(0, file.indexOf('.'));
     if (config.csv) {
       file += ".csv";
@@ -227,4 +274,24 @@ function crawlover(config, datas) {
     }
     console.log("Save ->", file);
   }
+}
+/** 下载一个网络资源到本地
+ * @param {string} url - 网络资源
+ * @param {string} filename - 本地保存路径
+ * @param {boolean} [exists=true] - 本地已经存在文件则不重复下载文件
+ * @returns {Promise<string>} 成功后 resolve 文件名，失败时 reject URL
+ */
+exports.download = async (url, filename, exists = true) => {
+  if (!fs.existsSync(filename)) {
+    try {
+      const response = await axios.get(url, { responseType: 'arraybuffer' });
+      const buffer = Buffer.from(response.data, 'binary');
+      fs.writeFileSync(filename, buffer);
+      console.log('download completed!', url);
+    } catch (error) {
+      console.log('download error!', url, error);
+      return Promise.reject(url);
+    }
+  }
+  return Promise.resolve(filename);
 }
