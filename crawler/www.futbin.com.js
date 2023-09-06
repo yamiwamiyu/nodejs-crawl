@@ -14,8 +14,9 @@ const RECORD = DIR + "_fifa-23.json";
  * @property {string} color1 - 球员卡文字颜色
  * @property {string} color2 - 球员卡线条颜色
  * @property {string} color3 - 球员卡背景辉光颜色
- * @property {string} color4 - 球员列表头像卡数值文字颜色
- * @property {string} color5 - 球员列表头像卡背景颜色
+ * @property {string} color4 - 球员卡国籍背景颜色
+ * @property {string} color5 - 球员列表头像卡数值文字颜色
+ * @property {string} color6 - 球员列表头像卡背景颜色
  */
 /** 上次采集的存档，避免重复采集样式
  * @type {Record<string, version>}
@@ -29,7 +30,7 @@ if (fs.existsSync(RECORD))
 const current = [];
 
 /** 采集 fifa23 数据 */
-exports.fifa23crawl = function() {
+exports.fifa23crawl = function () {
   pageCrawl({
     port: 9222,
     headless: true,
@@ -105,8 +106,9 @@ exports.fifa23crawl = function() {
         v.color1 = color;
         v.color2 = bgcolor;
         v.color3 = glcolor;
-        v.color4 = _color(style.color);
-        v.color5 = bg;
+        v.color4 = getComputedStyle(dom.querySelector(".top-overlay")).backgroundImage;
+        v.color5 = _color(style.color);
+        v.color6 = bg;
 
         return [v];
       } else {
@@ -135,7 +137,7 @@ exports.fifa23crawl = function() {
         }
         current.shift();
         if (!current.length) {
-          fifa23css();
+          exports.fifa23css();
           fs.writeFileSync(RECORD, JSON.stringify(previous));
           return Object.values(previous);
         } else {
@@ -171,7 +173,7 @@ exports.fifa23crawl = function() {
 }
 
 /** 将 fifa23 采集的数据生成 css */
-exports.fifa23css = function() {
+exports.fifa23css = function () {
   const array = [];
   const result = Object.values(previous);
   result.sort((a, b) => a.id - b.id)
@@ -181,11 +183,15 @@ exports.fifa23css = function() {
 .card_${item.id}_${item.version} {
   --bg: url(./${item.hd.substring(item.hd.lastIndexOf('/') + 1)});
   --line: ${item.color2};
+  --mask: ${item.color4};
   color: ${item.color1};
 }
+.ut-item_tiny.card_${item.id}_${item.version} {
+  --bg: url(./tiny_${item.hd.substring(item.hd.lastIndexOf('/') + 1)});
+}
 .rating_${item.id}_${item.version} {
-  color: ${item.color4};
-  background: ${item.color5};
+  color: ${item.color5};
+  background: ${item.color6};
 }
 `)
   }
@@ -257,17 +263,27 @@ exports.fifa23css = function() {
   -ms-flex-direction: column;
   flex-direction: column;
   width: 1.375em;
-  height: 3.85em;
-  margin-top: 1em;
+  height: 4.35em;
+  margin-top: 0.5em;
+  margin-left: 0.25em;
   line-height: 0;
   position: relative;
+}
+
+.ut-item_tiny .ut-item_meta {
+  margin-top: .65em;
 }
 
 /* 有些球员信息部分有个半透明条幅 */
 .ut-item_mask {
   position: absolute;
-  background: linear-gradient(to bottom, rgba(65, 33, 1, 0) 0, rgba(65, 33, 1, 0) 10%, rgba(65, 33, 1, 0.65) 45%, rgba(65, 33, 1, 0.76) 58%, rgba(65, 33, 1, 0.75) 77%, rgba(65, 33, 1, 0.7) 100%);
+  background: var(--mask);
   width: 100%;
+  height: 180%;
+  top: 0.25em;
+}
+
+.ut-item_tiny .ut-item_mask {
   height: 100%;
 }
 
@@ -290,6 +306,32 @@ exports.fifa23css = function() {
   line-height: 1;
   margin-top: -.125em;
   position: relative;
+}
+
+/* 其它位置 */
+.alt-pos {
+  position: absolute;
+  line-height: 1;
+  transform: translateX(-100%) scale(.75);
+  font-size: .5em;
+  font-family: DINPro-Cond-Med;
+}
+
+.ut-item_tiny .alt-pos {
+  display: none;
+}
+
+.alt-pos > div {
+  background-image: var(--bg);
+  border-radius: 50%;
+  background-size: 275px;
+  background-position-y: -206px;
+  background-position-x: -38px;
+  width: 2em;
+  height: 2em;
+  display: flex;
+  justify-content: center;
+  align-items: center;
 }
 
 /* 俱乐部 */
@@ -402,6 +444,11 @@ exports.fifa23css = function() {
 <div class="ut-item ut-item_glow card_153_shapeshifters_icon">
   <div class="ut-item_meta">
     <div class="ut-item_mask"></div>
+    <div class="alt-pos">
+      <div>RM</div>
+      <div>LM</div>
+      <div>RW</div>
+    </div>
     <span class="ut-item_rating">91</span>
     <span class="ut-item_position">LW</span>
     <img class="ut-item_crest" src="https://cdn.futbin.com/content/fifa23/img/clubs/112658.png">
