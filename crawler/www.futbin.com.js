@@ -270,10 +270,6 @@ exports.fifa23css = function () {
   position: relative;
 }
 
-.ut-item_tiny .ut-item_meta {
-  margin-top: .65em;
-}
-
 /* 有些球员信息部分有个半透明条幅 */
 .ut-item_mask {
   position: absolute;
@@ -281,10 +277,6 @@ exports.fifa23css = function () {
   width: 100%;
   height: 180%;
   top: 0.25em;
-}
-
-.ut-item_tiny .ut-item_mask {
-  height: 100%;
 }
 
 /* 数值 */
@@ -315,10 +307,9 @@ exports.fifa23css = function () {
   transform: translateX(-100%) scale(.75);
   font-size: .5em;
   font-family: DINPro-Cond-Med;
-}
-
-.ut-item_tiny .alt-pos {
-  display: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25em;
 }
 
 .alt-pos > div {
@@ -344,20 +335,22 @@ exports.fifa23css = function () {
 
 /* 国家 */
 .ut-item_flag {
-  height: .79em;
   margin: auto;
   width: 1.25em;
   position: relative;
+  border-top: 2px solid var(--line);
+  border-bottom: 2px solid var(--line);
+  padding: 0.15em 0;
 }
 
 /* 球员头像 */
 .ut-item_headshot {
   width: auto;
-  height: 3.85em;
+  height: 6.85em;
   object-fit: contain;
   max-width: 100%;
   position: absolute;
-  bottom: 5.55em;
+  bottom: 3.55em;
   right: 1em;
 }
 
@@ -442,6 +435,7 @@ exports.fifa23css = function () {
 /* 使用模板如下 */
 /*
 <div class="ut-item ut-item_glow card_153_shapeshifters_icon">
+  <img class="ut-item_headshot" src="https://cdn.futbin.com/content/fifa23/img/players/p50568715.png?v=23">
   <div class="ut-item_meta">
     <div class="ut-item_mask"></div>
     <div class="alt-pos">
@@ -451,10 +445,9 @@ exports.fifa23css = function () {
     </div>
     <span class="ut-item_rating">91</span>
     <span class="ut-item_position">LW</span>
+    <img class="ut-item_flag" src="https://cdn.futbin.com/content/fifa23/img/nation/54.png">
     <img class="ut-item_crest" src="https://cdn.futbin.com/content/fifa23/img/clubs/112658.png">
-    <img class="ut-item_flag" src="https://www.utpacks.com/common/images/fifa23/nations/54.png">
   </div>
-  <img class="ut-item_headshot" src="https://www.utpacks.com/common/images/fifa23/players/p50568715.png">
   <div class="ut-item_name">Pelé</div>
   <div class="ut-item_status">
     <div class="ut-item_value">
@@ -499,7 +492,16 @@ exports.fifa23css = function () {
   padding-right: 1.2em;
 }
 
+.ut-item_tiny .alt-pos {
+  display: none;
+}
+
+.ut-item_tiny .ut-item_mask {
+  height: 100%;
+}
+
 .ut-item_tiny .ut-item_meta {
+  margin-top: .65em;
   font-size: 1.16em;
 }
 
@@ -509,8 +511,7 @@ exports.fifa23css = function () {
 }
 
 .ut-item_tiny .ut-item_headshot {
-  height: 4.2em;
-  bottom: 2.9em;
+  bottom: .9em;
 }
 
 .ut-item_tiny .ut-item_status {
