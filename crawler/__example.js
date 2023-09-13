@@ -273,4 +273,5 @@ exports.example5 = async () => {
 //   }
 // })
 
-require('./www.futbin.com').fifa23css();
+const futbin = require('./www.futbin.com');
+futbin.css(futbin.versions.fc24);

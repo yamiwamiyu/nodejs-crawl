@@ -1,12 +1,9 @@
 const { pageCrawl, download } = require('../index');
 const fs = require('fs');
+const path = require('path');
 
-const DIR = "crawler/fifa-23/";
-if (!fs.existsSync(DIR))
-  fs.mkdirSync(DIR, { recursive: true });
-const RECORD = DIR + "_fifa-23.json";
 /** 一种背景卡
- * @typedef {object} version
+ * @typedef {object} card
  * @property {number} id - 1 ~ 200
  * @property {string} version - 版本名，例如 gold | eoae_icon | futties 等
  * @property {string} hd - 高清卡图
@@ -18,25 +15,39 @@ const RECORD = DIR + "_fifa-23.json";
  * @property {string} color5 - 球员列表头像卡数值文字颜色
  * @property {string} color6 - 球员列表头像卡背景颜色
  */
-/** 上次采集的存档，避免重复采集样式
- * @type {Record<string, version>}
- */
-let previous = {};
-if (fs.existsSync(RECORD))
-  previous = JSON.parse(fs.readFileSync(RECORD));
-/** 本次需要采集的内容
- * @type {version[]}
- */
-const current = [];
 
-/** 采集 fifa23 数据 */
-exports.fifa23crawl = function () {
+/** fifa 版本
+ * @typedef {object} version
+ * @property {string} url - 采集的 url
+ * @property {string} [name] - 版本名，用于输出 css 和 json 的文件名
+ * @property {string} dir - 采集后数据保存的本地目录
+ * @property {function(Record<string, card>):string} css - 根据采集的数据生成球员卡的 css 字符串
+ */
+
+/** 采集数据
+ * @param {version} version - 版本
+ */
+exports.crawl = function (version) {
+  const DIR = version.dir;
+  if (!fs.existsSync(DIR))
+    fs.mkdirSync(DIR, { recursive: true });
+  const RECORD = DIR + getVersionName(version) + ".json";
+  /** 上次采集的存档，避免重复采集样式
+   * @type {Record<string, card>}
+   */
+  let previous = {};
+  if (fs.existsSync(RECORD))
+    previous = JSON.parse(fs.readFileSync(RECORD));
+  /** 本次需要采集的内容
+   * @type {card[]}
+   */
+  const current = [];
   pageCrawl({
     port: 9222,
     headless: true,
-    url: "https://www.futbin.com/players",
+    url: version.url,
     wait: ".modal-versions-row",
-    /** @param {version} v */
+    /** @param {card} v */
     async dom(v) {
       // bug: 可能出现 404 的情况
       if (v) {
@@ -126,18 +137,18 @@ exports.fifa23crawl = function () {
         return all;
       }
     },
-    /** @param {version[]} versions */
+    /** @param {card[]} versions */
     async ondata(versions) {
       if (current.length) {
         const v = versions[0];
         if (v.color1) {
-          // todo: 成功
+          // 成功
           previous[v.version] = v;
           console.log("新卡片类型：", v.version);
         }
         current.shift();
         if (!current.length) {
-          exports.fifa23css();
+          exports.css(version, previous);
           fs.writeFileSync(RECORD, JSON.stringify(previous));
           return Object.values(previous);
         } else {
@@ -151,8 +162,8 @@ exports.fifa23crawl = function () {
           const name = v.tiny.substring(v.tiny.lastIndexOf('/') + 1);
           if (!current.length)
             console.log("正在下载卡牌图片...");
-          await download(v.tiny, DIR + "tiny_" + name);
-          await download(v.hd, DIR + name);
+          await download(v.tiny, DIR + "tiny_" + name).catch(() => {});
+          await download(v.hd, DIR + name).catch(() => { });
           current.push(v);
         }
         if (current.length) {
@@ -166,20 +177,38 @@ exports.fifa23crawl = function () {
     next() {
       if (current.length) {
         this.pass = current[0];
-        return "https://www.futbin.com/players?page=1&version=" + current[0].version;
+        return version.url + "?page=1&version=" + current[0].version;
       }
     }
   })
 }
 
-/** 将 fifa23 采集的数据生成 css */
-exports.fifa23css = function () {
-  const array = [];
-  const result = Object.values(previous);
-  result.sort((a, b) => a.id - b.id)
-  for (const item of result) {
-    array.push(
-      `
+/** 采集的数据生成 css
+ * @param {version} version - 版本
+ * @param {Record<string, card>} previous - 采集的数据
+ */
+exports.css = function (version, previous) {
+  const name = getVersionName(version);
+  if (!previous)
+    previous = JSON.parse(fs.readFileSync(version.dir + name + ".json"));
+  const output = version.dir + name + ".css";
+  const css = version.css(previous);
+  console.log("写入 css 样式：", output);
+  fs.writeFileSync(output, css);
+}
+
+exports.versions = {
+  /** @type {version} */
+  fifa23: {
+    url: "https://www.futbin.com/players",
+    dir: "crawler/fifa-23/",
+    css: function (previous) {
+      const array = [];
+      const result = Object.values(previous);
+      result.sort((a, b) => a.id - b.id)
+      for (const item of result) {
+        array.push(
+          `
 .card_${item.id}_${item.version} {
   --bg: url(./${item.hd.substring(item.hd.lastIndexOf('/') + 1)});
   --line: ${item.color2};
@@ -194,9 +223,8 @@ exports.fifa23css = function () {
   background: ${item.color6};
 }
 `)
-  }
-  const css =
-    `
+      }
+      return `
 @font-face {
   font-family: DINPro-Cond;
   src: url(https://cdn.futbin.com/design/css/fonts/DINPro/design/css/fonts/DINPro/DINPro-Cond.woff) format("truetype");
@@ -518,7 +546,247 @@ exports.fifa23css = function () {
   display: none;
 }
 ${array.join('\r\n')}`;
-  const output = DIR + "_fifa-23.css";
-  console.log("写入 css 样式：", output);
-  fs.writeFileSync(output, css);
+    }
+  },
+  /** @type {version} */
+  fc24: {
+    url: "https://www.futbin.com/24/players",
+    dir: "crawler/fc-24/",
+    css: function (previous) {
+      const array = [];
+      const result = Object.values(previous);
+      result.sort((a, b) => a.id - b.id)
+      for (const item of result) {
+        array.push(
+          `
+.card_${item.id}_${item.version} {
+  --bg: url(./${item.hd.substring(item.hd.lastIndexOf('/') + 1)});
+  --line: ${item.color2};
+  --mask: ${item.color4};
+  color: ${item.color1};
+}
+.ut-item_tiny.card_${item.id}_${item.version} {
+  --bg: url(./tiny_${item.hd.substring(item.hd.lastIndexOf('/') + 1)});
+}
+.rating_${item.id}_${item.version} {
+  color: ${item.color5};
+  background: ${item.color6};
+}
+`)
+      }
+      return `
+/* 总能力值 */
+@font-face {
+  font-family: Cruyff-Bold;
+  src: url(https://cdn.futbin.com/design/css/fonts/cruyff/CruyffSans-Bold.ttf) format("truetype");
+}
+/* 位置 名字 属性值 */
+@font-face {
+  font-family: Cruyff-Medium;
+  src: url(https://cdn.futbin.com/design/css/fonts/cruyff/CruyffSans-Medium.ttf) format("truetype");
+}
+/* 属性名 */
+@font-face {
+  font-family: Cruyff-Regular;
+  src: url(https://cdn.futbin.com/design/css/fonts/cruyff/CruyffSans-Regular.ttf) format("truetype");
+}
+
+/* 一个球员最外层div，可通过font-size(建议)和transform:scale(字很小时使用)来控制大小 */
+.ut-item {
+  font-size: max(14px, 1em);
+  display: -ms-flexbox;
+  display: flex;
+  flex-direction: column;
+  -ms-flex-wrap: wrap;
+  flex-wrap: wrap;
+  position: relative;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: 110% 105%;
+  width: 11.9em;
+  height: 16.67em;
+  flex: none;
+  transform-origin: left;
+  transition: all .25s;
+  background-image: var(--bg);
+  font-family: Cruyff-Medium;
+  line-height: 1;
+}
+
+.ut-item > *:not(.ut-item_headshot) {
+  position: relative;
+}
+
+.ut-item_glow {
+  animation: ut-item_glow 3s infinite;
+  --glow: 243, 146, 0;
+}
+
+@keyframes ut-item_glow {
+  0%, 100% {
+    filter: drop-shadow(1px -3px 15px rgba(var(--glow), .2));
+  }
+  50% {
+    filter: drop-shadow(1px -3px 15px rgba(var(--glow), .8));
+  }
+}
+
+/* 球员左上角 数值，位置 */
+.ut-item_meta {
+  -ms-flex-align: center;
+  align-items: center;
+  display: -ms-flexbox;
+  display: flex;
+  -ms-flex-direction: column;
+  flex-direction: column;
+  width: 1.375em;
+  height: 7.35em;
+  margin-top: 3em;
+  margin-left: 2em;
+}
+
+/* 数值 */
+.ut-item_rating {
+  font-family: Cruyff-Bold;
+  font-size: 1.875em;
+}
+
+/* 位置 */
+.ut-item_position {
+  font-size: .875em;
+}
+
+/* 球员头像 */
+.ut-item_headshot {
+  width: 104.1%;
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+}
+
+/* 下方球员名 */
+.ut-item_name {
+  font-size: 1.375em;
+  letter-spacing: -.2px;
+  white-space: nowrap;
+  text-align: center;
+  text-transform: uppercase;
+}
+
+/* 下方属性值 */
+.ut-item_status {
+  display: flex;
+  margin: 0 auto;
+  gap: 0.1em;
+}
+
+.ut-item_status > div {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+/* 属性值 */
+.ut-item_status > div > span:last-child {
+  font-size: 1em;
+}
+
+/* 属性标题 */
+.ut-item_status > div > span:first-child {
+  font-family: Cruyff-Regular;
+  font-size: .75em;
+  transform: scale(0.85);
+}
+
+/* 国旗 俱乐部 机构 */
+.ut-item_ccl {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 1em;
+  gap: 0.25em;
+}
+
+.ut-item_ccl > img {
+  height: auto;
+  width: 1em;
+  object-fit: contain;
+}
+
+/* 使用模板如下 */
+/*
+<div class="ut-item ut-item_glow card_153_shapeshifters_icon">
+  <img class="ut-item_headshot" src="https://cdn.futbin.com/content/fifa24/img/players/p999503.png?v=23">
+  <div class="ut-item_meta">
+    <span class="ut-item_rating">91</span>
+    <span class="ut-item_position">LW</span>
+  </div>
+  <div class="ut-item_name">Pelé</div>
+  <div class="ut-item_status">
+    <div>
+      <span>PAC</span>
+      <span>96</span>
+    </div>
+    <div>
+      <span>DRI</span>
+      <span>99</span>
+    </div>
+    <div>
+      <span>SHO</span>
+      <span>97</span>
+    </div>
+    <div>
+      <span>DEF</span>
+      <span>61</span>
+    </div>
+    <div>
+      <span>PAS</span>
+      <span>94</span>
+    </div>
+    <div>
+      <span>PHY</span>
+      <span>78</span>
+    </div>
+  </div>
+  <div class="ut-item_ccl">
+    <img class="ut-item_flag" src="https://cdn.futbin.com/content/fifa24/img/nation/27.png">
+    <img class="ut-item_club" src="https://cdn.futbin.com/content/fifa24/img/clubs/114605.png">
+    <img class="ut-item_crest" src="https://cdn.futbin.com/content/fifa24/img/league/31.png">
+  </div>
+</div>
+*/
+
+
+/* 简单版，没有数值 */
+.ut-item_tiny {
+  background-size: 100%;
+}
+
+.ut-item_tiny .ut-item_meta {
+  height: 7em;
+  margin-top: 4em;
+}
+
+.ut-item_tiny .ut-item_headshot {
+  top: 53%;
+  width: 82%;
+}
+
+.ut-item_tiny .ut-item_status {
+  display: none;
+}
+${array.join('\r\n')}`;
+    }
+  },
+}
+
+/** @param {version} version */
+function getVersionName(version) {
+  return version.name || ('_' + path.basename(version.dir));
 }
