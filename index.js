@@ -53,7 +53,8 @@ exports.getBrowser = async function (config) {
     if (browserWSEndpoint) {
       browser = await puppeteer.connect({ browserWSEndpoint, defaultViewport: null });
       // 不需要关闭chrome
-      browser.close = () => { };
+      if (!config.headless)
+        browser.close = () => { };
       console.log("Connect chrome success!");
     } else {
       puppeteer = require('puppeteer');
@@ -193,10 +194,13 @@ exports.pageCrawl = async (config) => {
       else
         // 点击翻页
         button.click();
-    }, typeof (config.next) == 'string' ? config.next : config.next(pageCount, page))
+    }, (typeof (config.next) == 'string') ? config.next : config.next(pageCount, page))
     // 不能下一页，结束爬行
     if (over)
       break;
+
+    // 等待翻页完成
+    await new Promise(resolve => setTimeout(resolve, 2000));
   }
 
   crawlover(config, datas);

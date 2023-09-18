@@ -8,12 +8,15 @@ const path = require('path');
  * @property {string} version - 版本名，例如 gold | eoae_icon | futties 等
  * @property {string} hd - 高清卡图
  * @property {string} tiny - 小卡图
+ * @property {boolean} special - 球员卡头像是否是特殊的
  * @property {string} color1 - 球员卡文字颜色
  * @property {string} color2 - 球员卡线条颜色
  * @property {string} color3 - 球员卡背景辉光颜色
  * @property {string} color4 - 球员卡国籍背景颜色
  * @property {string} color5 - 球员列表头像卡数值文字颜色
  * @property {string} color6 - 球员列表头像卡背景颜色
+ * @property {string} color7 - 球员卡副位置背景颜色
+ * @property {string} color8 - 球员卡球风边框颜色
  */
 
 /** fifa 版本
@@ -85,6 +88,9 @@ exports.crawl = function (version) {
           return "#" + ((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1);
         }
 
+        // 球员卡头像是否特殊
+        v.special = dom.querySelector('.pcdisplay-picture.special-img') ? true : undefined;
+
         var color = _color(style['color']);
 
         // 线条颜色
@@ -95,6 +101,18 @@ exports.crawl = function (version) {
         var glcolor = style.filter;
         var glindex = glcolor.indexOf('rgba(') + 5;
         glcolor = glcolor.substring(glindex, glcolor.lastIndexOf(','));
+
+        // todo: fc-24 副位置和球风暂时只能打开球员卡才能采集到
+
+        // 副位置背景色
+        var sub = dom.querySelector(".pcdisplay-alt-pos > div");
+        if (sub)
+          sub = _color(getComputedStyle(sub).backgroundColor);
+
+        // 球风边框色
+        var playstyle = dom.querySelector(".pcdisplay-playstyles > .playstyle-plus-border");
+        if (playstyle)
+          playstyle = _color(getComputedStyle(playstyle).backgroundColor);
 
         // 球员列表球员卡数值渐变色
         var e = $(".player_tr_1")[0].children[2].children[0]
@@ -120,6 +138,8 @@ exports.crawl = function (version) {
         v.color4 = getComputedStyle(dom.querySelector(".top-overlay")).backgroundImage;
         v.color5 = _color(style.color);
         v.color6 = bg;
+        v.color7 = sub ? sub : undefined;
+        v.color8 = playstyle ? playstyle : undefined;
 
         return [v];
       } else {
@@ -179,7 +199,7 @@ exports.crawl = function (version) {
         this.pass = current[0];
         return version.url + "?page=1&version=" + current[0].version;
       }
-    }
+    },
   })
 }
 
@@ -563,6 +583,8 @@ ${array.join('\r\n')}`;
   --bg: url(./${item.hd.substring(item.hd.lastIndexOf('/') + 1)});
   --line: ${item.color2};
   --mask: ${item.color4};
+  --sub: ${item.color7};
+  --ps: ${item.color8};
   color: ${item.color1};
 }
 .ut-item_tiny.card_${item.id}_${item.version} {
@@ -575,6 +597,56 @@ ${array.join('\r\n')}`;
 `)
       }
       return `
+/* 球风图标 */
+@font-face {
+  font-family: 'Playstyles';
+  src: url("https://cdn.futbin.com/design/img/icons/playstyles/24/font/fonts/playstyles.eot?#iefix") format("embedded-opentype"),url("https://cdn.futbin.com/design/img/icons/playstyles/24/font/fonts/playstyles.woff") format("woff"),url("https://cdn.futbin.com/design/img/icons/playstyles/24/font/fonts/playstyles.ttf") format("truetype"),url("https://cdn.futbin.com/design/img/icons/playstyles/24/font/fonts/playstyles.svg#Glyphter") format("svg");
+  font-weight: normal;
+  font-style: normal
+}
+[class*='fb-icon-']:before {
+  display: inline-block;
+  font-family: 'Playstyles';
+  font-style: normal;
+  font-weight: normal;
+  line-height: 1;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale
+}
+.fb-icon-ballcontrol-firsttouch:before { content: '\\0042' }
+.fb-icon-ballcontrol-flair:before { content: '\\0043' }
+.fb-icon-ballcontrol-pressproven:before { content: '\\0044' }
+.fb-icon-ballcontrol-rapid:before { content: '\\0045' }
+.fb-icon-ballcontrol-technical:before { content: '\\0046' }
+.fb-icon-ballcontrol-trickster:before { content: '\\0047' }
+.fb-icon-defending-anticipate:before { content: '\\0048' }
+.fb-icon-defending-block:before { content: '\\0049' }
+.fb-icon-defending-bruiser:before { content: '\\004a' }
+.fb-icon-defending-intercept:before { content: '\\004b' }
+.fb-icon-defending-jockey:before { content: '\\004c' }
+.fb-icon-defending-slidetackle:before { content: '\\004d' }
+.fb-icon-gk-crosscatcher:before { content: '\\004e' }
+.fb-icon-gk-farreach:before { content: '\\004f' }
+.fb-icon-gk-farthrow:before { content: '\\0050' }
+.fb-icon-gk-footwork:before { content: '\\0051' }
+.fb-icon-gk-quickreflexes:before { content: '\\0052' }
+.fb-icon-gk-rushout:before { content: '\\0053' }
+.fb-icon-passing-incisivepass:before { content: '\\0054' }
+.fb-icon-passing-longballpass:before { content: '\\0055' }
+.fb-icon-passing-pingedpass:before { content: '\\0056' }
+.fb-icon-passing-tikitaka:before { content: '\\0057' }
+.fb-icon-passing-whippedcrosser:before { content: '\\0058' }
+.fb-icon-physical-acrobatic:before { content: '\\0059' }
+.fb-icon-physical-aerial:before { content: '\\005a' }
+.fb-icon-physical-longthrow:before { content: '\\0061' }
+.fb-icon-physical-quickstep:before { content: '\\0062' }
+.fb-icon-physical-relentless:before { content: '\\0063' }
+.fb-icon-physical-trivela:before { content: '\\0064' }
+.fb-icon-scoring-chipshot:before { content: '\\0065' }
+.fb-icon-scoring-deadball:before { content: '\\0066' }
+.fb-icon-scoring-finesseshot:before { content: '\\0067' }
+.fb-icon-scoring-powerheader:before { content: '\\0068' }
+.fb-icon-scoring-powershot:before { content: '\\0069' }
 /* 总能力值 */
 @font-face {
   font-family: Cruyff-Bold;
@@ -606,7 +678,7 @@ ${array.join('\r\n')}`;
   user-select: none;
   background-position: center;
   background-repeat: no-repeat;
-  background-size: 110% 105%;
+  background-size: 105%;
   width: 11.9em;
   height: 16.67em;
   flex: none;
@@ -660,13 +732,73 @@ ${array.join('\r\n')}`;
   font-size: .875em;
 }
 
+/* 副位置 & 球风 */
+.ut-item_left {
+  position: absolute;
+  left: -105%;
+  top: 1.6em;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.ut-item_left .alt-pos {
+  font-size: .75em;
+  font-family: Cruyff-Medium;
+}
+
+.ut-item_left .alt-pos > div {
+  background-color: var(--sub);
+  border-radius: 50%;
+  width: 1.85em;
+  height: 1.85em;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: .15em
+}
+
+.ut-item_left .playstyle {
+  position: absolute;
+  top: 3em;
+  left: -12%;
+}
+
+.ut-item_left .playstyle > div {
+  background-color: var(--ps);
+  clip-path: polygon(25% 0, 75% 0%, 100% 40%, 50% 100%, 0 40%);
+  width: 1.875em;
+  height: 1.875em;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.ut-item_left .playstyle > div:before {
+  background-color: var(--sub);
+  clip-path: polygon(25% 0, 75% 0%, 100% 40%, 50% 100%, 0 40%);
+  font-size: 1.625em;
+  margin-top: -1px;
+}
+
 /* 球员头像 */
 .ut-item_headshot {
-  width: 104.1%;
   position: absolute;
+  width: 77%;
+  left: 18%;
+  top: 7.5%;
+}
+
+/* 例如英雄卡等超出边框的头像 */
+.ut-item_headshot.special {
+  width: 104.1%;
   left: 50%;
   top: 50%;
   transform: translate(-50%, -50%);
+}
+
+.ut-item_headshot.special.tiny {
+  width: 80%;
 }
 
 /* 下方球员名 */
@@ -720,14 +852,73 @@ ${array.join('\r\n')}`;
 }
 
 /* 使用模板如下 */
-/*
-<div class="ut-item ut-item_glow card_153_shapeshifters_icon">
-  <img class="ut-item_headshot" src="https://cdn.futbin.com/content/fifa24/img/players/p999503.png?v=23">
+/* 特殊大头像卡
+<div class="ut-item ut-item_glow card_7300_ucl_hero">
+  <img class="ut-item_headshot special" src="https://cdn.futbin.com/content/fifa24/img/players/p999503.png?v=23">
   <div class="ut-item_meta">
     <span class="ut-item_rating">91</span>
     <span class="ut-item_position">LW</span>
+    <div class="ut-item_left">
+      <div class="alt-pos">
+        <div>RM</div>
+        <div>LM</div>
+        <div>RW</div>
+      </div>
+      <div class="playstyle">
+        <div class="fb-icon-physical-acrobatic"></div>
+      </div>
+    </div>
   </div>
   <div class="ut-item_name">Pelé</div>
+  <div class="ut-item_status">
+    <div>
+      <span>PAC</span>
+      <span>96</span>
+    </div>
+    <div>
+      <span>DRI</span>
+      <span>99</span>
+    </div>
+    <div>
+      <span>SHO</span>
+      <span>97</span>
+    </div>
+    <div>
+      <span>DEF</span>
+      <span>61</span>
+    </div>
+    <div>
+      <span>PAS</span>
+      <span>94</span>
+    </div>
+    <div>
+      <span>PHY</span>
+      <span>78</span>
+    </div>
+  </div>
+  <div class="ut-item_ccl">
+    <img class="ut-item_flag" src="https://cdn.futbin.com/content/fifa24/img/nation/27.png">
+    <img class="ut-item_club" src="https://cdn.futbin.com/content/fifa24/img/clubs/114605.png">
+    <img class="ut-item_crest" src="https://cdn.futbin.com/content/fifa24/img/league/31.png">
+  </div>
+</div>
+
+普通小头像卡
+<div class="ut-item ut-item_glow card_1_gold">
+  <img class="ut-item_headshot" src="https://cdn.futbin.com/content/fifa24/img/players/239085.png?v=23">
+  <div class="ut-item_meta">
+    <span class="ut-item_rating">91</span>
+    <span class="ut-item_position">ST</span>
+    <div class="ut-item_left">
+      <div class="alt-pos">
+        <div>CF</div>
+      </div>
+      <div class="playstyle">
+        <div class="fb-icon-physical-acrobatic"></div>
+      </div>
+    </div>
+  </div>
+  <div class="ut-item_name">Haaland</div>
   <div class="ut-item_status">
     <div>
       <span>PAC</span>
@@ -769,16 +960,22 @@ ${array.join('\r\n')}`;
 }
 
 .ut-item_tiny .ut-item_meta {
-  height: 7em;
+  height: 8em;
   margin-top: 4em;
 }
 
 .ut-item_tiny .ut-item_headshot {
+  top: 14%;
+}
+
+.ut-item_tiny .ut-item_headshot.special {
   top: 53%;
   width: 82%;
 }
 
-.ut-item_tiny .ut-item_status {
+.ut-item_tiny .ut-item_status,
+.ut-item_tiny .ut-item_ccl,
+.ut-item_tiny .ut-item_left {
   display: none;
 }
 ${array.join('\r\n')}`;
