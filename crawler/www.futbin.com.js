@@ -200,7 +200,7 @@ exports.css = function (version, previous) {
 exports.versions = {
   /** @type {version} */
   fifa23: {
-    url: "https://www.futbin.com/players",
+    url: "https://www.futbin.com/23/players",
     dir: "crawler/fifa-23/",
     css: function (previous) {
       const array = [];
