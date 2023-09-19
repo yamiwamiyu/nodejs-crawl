@@ -60,25 +60,7 @@ exports.crawl = function (version) {
         // 或者下载卡片背景失败（无法采集到卡片背景）
         if (!element || !v.hd || !v.tiny)
           return [v];
-        const event = new MouseEvent('mouseenter', {
-          bubbles: true,
-          cancelable: true,
-        });
-        element.dispatchEvent(event);
 
-        // 等待球员卡显示出来
-        await new Promise(r => {
-          const timer = setInterval(() => {
-            if (document.getElementById("Player-card")) {
-              r();
-              clearInterval(timer);
-            }
-          }, 200);
-        })
-
-        // 获取球员卡样式
-        var dom = document.getElementById("Player-card");
-        var style = getComputedStyle(dom);
         var _color = function (color) {
           color = color.substring(4, color.length - 1);
           var rgb = color.split(',');
@@ -88,13 +70,83 @@ exports.crawl = function (version) {
           return "#" + ((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1);
         }
 
+        // 球员列表球员卡数值渐变色
+        var e = $(".player_tr_1")[0].children[2].children[0];
+        var split = e.className.split(' ');
+        var c = [];
+        for (var i = split.length - 1; i >= 0 && c.length < 3; i--) {
+          if (!split[i]) continue;
+          c.unshift(split[i]);
+        }
+        var style = getComputedStyle(e);
+        var bg = style.backgroundImage;
+        while (true) {
+          var index = bg.indexOf("rgb(");
+          if (index == -1) break;
+          var index2 = bg.indexOf(")", index) + 1;
+          var rgb = bg.substring(index, index2);
+          bg = bg.replace(rgb, _color(rgb));
+        }
+
+        v.color5 = _color(style.color);
+        v.color6 = bg;
+
+        // const event = new MouseEvent('mouseenter', {
+        //   bubbles: true,
+        //   cancelable: true,
+        // });
+        // element.dispatchEvent(event);
+
+        // 打开一个球员详情页来采集数据
+        // bug: URL 切换之后，puppeteer 的 page.evaluate 将失效无法继续执行后面代码
+        // 解决方案：用 iframe 动态加载页面来采集数据
+        // location.href = element.href;
+
+        // 等待用于替换的 iframe 显示出来
+        // await new Promise(r => {
+        //   const timer = setInterval(() => {
+        //     if (document.querySelector("#vmv3-frm")) {
+        //       r();
+        //       clearInterval(timer);
+        //     }
+        //   }, 200);
+        // })
+
+        const iframe = document.createElement('iframe');
+        var dom = undefined;
+        iframe.id = '_iframe';
+        // 检查 iframe 是否已经加载完成
+        iframe.addEventListener('load', function () {
+          const iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
+          dom = iframeDoc.getElementById('Player-card');
+        });
+        iframe.src = element.href;
+        // 网站会将添加的 iframe 全部替换掉，所以这里替换一个原本网站加载好的没被替换的 iframe
+        document.querySelector("#vmv3-frm").replaceWith(iframe);
+
+        // 等待球员卡显示出来
+        await new Promise(r => {
+          const timer = setInterval(() => {
+            if (dom) {
+              r();
+              clearInterval(timer);
+            }
+          }, 200);
+        })
+
+        console.log('已经出现球员卡信息', dom)
+
+        // 获取球员卡样式
+        // var dom = document.getElementById("Player-card");
+        var style = getComputedStyle(dom);
+
         // 球员卡头像是否特殊
         v.special = dom.querySelector('.pcdisplay-picture.special-img') ? true : undefined;
 
         var color = _color(style['color']);
 
         // 线条颜色
-        var bgcolor = getComputedStyle(document.getElementsByClassName("horz-line-bottom")[0])['background-color'];
+        var bgcolor = getComputedStyle(dom.getElementsByClassName("horz-line-bottom")[0])['background-color'];
         bgcolor = _color(bgcolor);
 
         // 辉光颜色
@@ -114,32 +166,14 @@ exports.crawl = function (version) {
         if (playstyle)
           playstyle = _color(getComputedStyle(playstyle).backgroundColor);
 
-        // 球员列表球员卡数值渐变色
-        var e = $(".player_tr_1")[0].children[2].children[0]
-        var split = e.className.split(' ');
-        var c = [];
-        for (var i = split.length - 1; i >= 0 && c.length < 3; i--) {
-          if (!split[i]) continue;
-          c.unshift(split[i]);
-        }
-        var style = getComputedStyle(e);
-        var bg = style.backgroundImage;
-        while (true) {
-          var index = bg.indexOf("rgb(");
-          if (index == -1) break;
-          var index2 = bg.indexOf(")", index) + 1;
-          var rgb = bg.substring(index, index2);
-          bg = bg.replace(rgb, _color(rgb));
-        }
-
         v.color1 = color;
         v.color2 = bgcolor;
         v.color3 = glcolor;
         v.color4 = getComputedStyle(dom.querySelector(".top-overlay")).backgroundImage;
-        v.color5 = _color(style.color);
-        v.color6 = bg;
-        v.color7 = sub ? sub : undefined;
-        v.color8 = playstyle ? playstyle : undefined;
+        if (sub)
+          v.color7 = sub;
+        if (playstyle)
+          v.color8 = playstyle;
 
         return [v];
       } else {
@@ -772,6 +806,7 @@ ${array.join('\r\n')}`;
   display: flex;
   justify-content: center;
   align-items: center;
+  margin-bottom: .15em;
 }
 
 .ut-item_left .playstyle > div:before {
@@ -807,7 +842,6 @@ ${array.join('\r\n')}`;
   letter-spacing: -.2px;
   white-space: nowrap;
   text-align: center;
-  text-transform: uppercase;
 }
 
 /* 下方属性值 */
@@ -862,7 +896,6 @@ ${array.join('\r\n')}`;
       <div class="alt-pos">
         <div>RM</div>
         <div>LM</div>
-        <div>RW</div>
       </div>
       <div class="playstyle">
         <div class="fb-icon-physical-acrobatic"></div>
@@ -915,6 +948,7 @@ ${array.join('\r\n')}`;
       </div>
       <div class="playstyle">
         <div class="fb-icon-physical-acrobatic"></div>
+        <div class="fb-icon-passing-incisivepass"></div>
       </div>
     </div>
   </div>

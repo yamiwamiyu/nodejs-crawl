@@ -53,8 +53,7 @@ exports.getBrowser = async function (config) {
     if (browserWSEndpoint) {
       browser = await puppeteer.connect({ browserWSEndpoint, defaultViewport: null });
       // 不需要关闭chrome
-      if (!config.headless)
-        browser.close = () => { };
+      browser.close = () => { };
       console.log("Connect chrome success!");
     } else {
       puppeteer = require('puppeteer');
@@ -160,14 +159,43 @@ exports.pageCrawl = async (config) => {
   // 去到你要的网页
   page.goto(config.url, { timeout: 0 });
   while (true) {
-    if (config.json)
+    if (config.json) {
+      console.log("Wait response data")
       // 等待获取数据
       await new Promise(resolve => turning = resolve);
+    }
     
-    if (config.wait)
-      await page.waitForSelector(config.wait);
+    if (config.wait) {
+      while (true) {
+        let timeout = 0;
+        console.log("Wait page selector", config.wait)
+        try {
+          const result = page.evaluate(async (wait) => {
+            await new Promise(r => {
+              const timer = setInterval(() => {
+                if (document.querySelector(wait)) {
+                  r();
+                  clearInterval(timer);
+                }
+              }, 200);
+            })
+          }, config.wait).catch(() => { });
+          // 防止超时卡住
+          timeout = setTimeout(() => {
+            Promise.reject(result);
+          }, 5000);
+          await result;
+        } catch {
+          continue;
+        }
+        clearTimeout(timeout);
+        break;
+      }
+      // await page.waitForSelector(config.wait);
+    }
     
     if (config.dom) {
+      console.log("Crawling page data");
       // 从页面获取数据
       const data = await page.evaluate(config.dom, config.pass);
       if (data) {
@@ -180,6 +208,8 @@ exports.pageCrawl = async (config) => {
     }
     
     // 翻页 | 结束
+    console.log("Turn the next page");
+    const href = page.url();
     const over = await page.evaluate((next) => {
       // 直接返回
       if (next?.indexOf('/')) {
@@ -200,7 +230,16 @@ exports.pageCrawl = async (config) => {
       break;
 
     // 等待翻页完成
-    await new Promise(resolve => setTimeout(resolve, 2000));
+    await new Promise(resolve => {
+      const timeout = setTimeout(resolve, 2000);
+      const timer = setInterval(() => {
+        if (href != page.url()) {
+          resolve();
+          clearInterval(timer);
+          clearTimeout(timeout);
+        }
+      }, 200);
+    });
   }
 
   crawlover(config, datas);
