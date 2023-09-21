@@ -49,7 +49,7 @@ exports.crawl = function (version) {
     port: 9222,
     headless: true,
     url: version.url,
-    wait: ".modal-versions-row",
+    wait: ".modal-versions-row .modal-version-col",
     /** @param {card} v */
     async dom(v) {
       // bug: 可能出现 404 的情况
@@ -700,8 +700,7 @@ ${array.join('\r\n')}`;
 /* 一个球员最外层div，可通过font-size(建议)和transform:scale(字很小时使用)来控制大小 */
 .ut-item {
   font-size: max(14px, 1em);
-  display: -ms-flexbox;
-  display: flex;
+  display: inline-flex;
   flex-direction: column;
   -ms-flex-wrap: wrap;
   flex-wrap: wrap;
@@ -713,8 +712,8 @@ ${array.join('\r\n')}`;
   background-position: center;
   background-repeat: no-repeat;
   background-size: 105%;
-  width: 11.9em;
-  height: 16.67em;
+  width: 13.75em;
+  height: 19.0625em;
   flex: none;
   transform-origin: left;
   transition: all .25s;
@@ -750,9 +749,9 @@ ${array.join('\r\n')}`;
   -ms-flex-direction: column;
   flex-direction: column;
   width: 1.375em;
-  height: 7.35em;
-  margin-top: 3em;
-  margin-left: 2em;
+  height: 9.75em;
+  margin-top: 2.5em;
+  margin-left: 3em;
 }
 
 /* 数值 */
@@ -769,8 +768,8 @@ ${array.join('\r\n')}`;
 /* 副位置 & 球风 */
 .ut-item_left {
   position: absolute;
-  left: -105%;
-  top: 1.6em;
+  left: -180%;
+  top: 1.4em;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -784,8 +783,8 @@ ${array.join('\r\n')}`;
 .ut-item_left .alt-pos > div {
   background-color: var(--sub);
   border-radius: 50%;
-  width: 1.85em;
-  height: 1.85em;
+  width: 2.5em;
+  height: 2.5em;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -794,8 +793,7 @@ ${array.join('\r\n')}`;
 
 .ut-item_left .playstyle {
   position: absolute;
-  top: 3em;
-  left: -12%;
+  top: 5.5em;
 }
 
 .ut-item_left .playstyle > div {
@@ -819,9 +817,9 @@ ${array.join('\r\n')}`;
 /* 球员头像 */
 .ut-item_headshot {
   position: absolute;
-  width: 77%;
-  left: 18%;
-  top: 7.5%;
+  width: 67%;
+  left: 25%;
+  top: 14.5%;
 }
 
 /* 例如英雄卡等超出边框的头像 */
@@ -842,13 +840,14 @@ ${array.join('\r\n')}`;
   letter-spacing: -.2px;
   white-space: nowrap;
   text-align: center;
+  max-width: 100%;
 }
 
 /* 下方属性值 */
 .ut-item_status {
   display: flex;
   margin: 0 auto;
-  gap: 0.1em;
+  gap: 0.25em;
 }
 
 .ut-item_status > div {
@@ -867,7 +866,6 @@ ${array.join('\r\n')}`;
 .ut-item_status > div > span:first-child {
   font-family: Cruyff-Regular;
   font-size: .75em;
-  transform: scale(0.85);
 }
 
 /* 国旗 俱乐部 机构 */
@@ -909,20 +907,20 @@ ${array.join('\r\n')}`;
       <span>96</span>
     </div>
     <div>
-      <span>DRI</span>
-      <span>99</span>
-    </div>
-    <div>
       <span>SHO</span>
       <span>97</span>
     </div>
     <div>
-      <span>DEF</span>
-      <span>61</span>
-    </div>
-    <div>
       <span>PAS</span>
       <span>94</span>
+    </div>
+    <div>
+      <span>DRI</span>
+      <span>99</span>
+    </div>
+    <div>
+      <span>DEF</span>
+      <span>61</span>
     </div>
     <div>
       <span>PHY</span>
@@ -994,23 +992,37 @@ ${array.join('\r\n')}`;
 }
 
 .ut-item_tiny .ut-item_meta {
-  height: 8em;
-  margin-top: 4em;
+  height: 8.5em;
+  margin-top: 5em;
 }
 
 .ut-item_tiny .ut-item_headshot {
-  top: 14%;
+  top: 30%;
+  width: 54%;
+  left: 33%;
 }
 
 .ut-item_tiny .ut-item_headshot.special {
   top: 53%;
   width: 82%;
+  left: 50%;
 }
 
 .ut-item_tiny .ut-item_status,
-.ut-item_tiny .ut-item_ccl,
 .ut-item_tiny .ut-item_left {
   display: none;
+}
+
+.ut-item_tiny .ut-item_ccl {
+  position: absolute;
+  top: 8em;
+  left: 3em;
+  flex-direction: column;
+  height: auto;
+}
+
+.ut-item_tiny .ut-item_ccl > img {
+  width: 1.5em;
 }
 ${array.join('\r\n')}`;
     }

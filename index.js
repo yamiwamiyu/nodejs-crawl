@@ -157,7 +157,7 @@ exports.pageCrawl = async (config) => {
     });
   }
   // 去到你要的网页
-  page.goto(config.url, { timeout: 0 });
+  await page.goto(config.url, { timeout: 0 });
   while (true) {
     if (config.json) {
       console.log("Wait response data")
@@ -240,6 +240,7 @@ exports.pageCrawl = async (config) => {
         }
       }, 200);
     });
+    console.log("Next page:", page.url());
   }
 
   crawlover(config, datas);
