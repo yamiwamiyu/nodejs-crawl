@@ -6,6 +6,7 @@ const path = require('path');
  * @typedef {object} card
  * @property {number} id - 1 ~ 200
  * @property {string} version - 版本名，例如 gold | eoae_icon | futties 等
+ * @property {string} vname - 版本名2，有些筛选的和球员卡版本名不一致，这个是球员卡的版本名，例如 gold | eoae_icon | futties 等
  * @property {string} hd - 高清卡图
  * @property {string} tiny - 小卡图
  * @property {boolean} special - 球员卡头像是否是特殊的
@@ -55,11 +56,16 @@ exports.crawl = function (version) {
       // bug: 可能出现 404 的情况
       if (v) {
         // 鼠标 Hover 一个的球员以获取卡片的样式信息
-        const element = document.querySelector("tr[data-url] a");
+        let element = document.querySelector("tr[data-url] a");
         // 可能出现一个球员都没有的情况（无法采集到样式信息）
         // 或者下载卡片背景失败（无法采集到卡片背景）
         if (!element || !v.hd || !v.tiny)
           return [v];
+
+        // 找到一个有副位置的球员卡打开，可以采集到它的背景色和边框色
+        const notEmpty = document.querySelector("tr[data-url] td:nth-child(4) :nth-child(2):not(:empty)");
+        if (notEmpty)
+          element = notEmpty.parentElement.parentElement.querySelector('a');
 
         var _color = function (color) {
           color = color.substring(4, color.length - 1);
@@ -91,27 +97,6 @@ exports.crawl = function (version) {
         v.color5 = _color(style.color);
         v.color6 = bg;
 
-        // const event = new MouseEvent('mouseenter', {
-        //   bubbles: true,
-        //   cancelable: true,
-        // });
-        // element.dispatchEvent(event);
-
-        // 打开一个球员详情页来采集数据
-        // bug: URL 切换之后，puppeteer 的 page.evaluate 将失效无法继续执行后面代码
-        // 解决方案：用 iframe 动态加载页面来采集数据
-        // location.href = element.href;
-
-        // 等待用于替换的 iframe 显示出来
-        // await new Promise(r => {
-        //   const timer = setInterval(() => {
-        //     if (document.querySelector("#vmv3-frm")) {
-        //       r();
-        //       clearInterval(timer);
-        //     }
-        //   }, 200);
-        // })
-
         const iframe = document.createElement('iframe');
         var dom = undefined;
         iframe.id = '_iframe';
@@ -138,6 +123,9 @@ exports.crawl = function (version) {
 
         // 获取球员卡样式
         // var dom = document.getElementById("Player-card");
+        // 球员卡上的版本名可能和筛选的版本名不一致，这里以球员卡的版本名为主
+        v.vname = dom.dataset.revision || dom.dataset.level;
+
         var style = getComputedStyle(dom);
 
         // 球员卡头像是否特殊
@@ -158,13 +146,13 @@ exports.crawl = function (version) {
 
         // 副位置背景色
         var sub = dom.querySelector(".pcdisplay-alt-pos > div");
-        if (sub)
-          sub = _color(getComputedStyle(sub).backgroundColor);
-
         // 球风边框色
-        var playstyle = dom.querySelector(".pcdisplay-playstyles > .playstyle-plus-border");
-        if (playstyle)
-          playstyle = _color(getComputedStyle(playstyle).backgroundColor);
+        var playstyle;
+        if (sub) {
+          style = getComputedStyle(sub);
+          sub = _color(style.backgroundColor);
+          playstyle = _color(style.borderColor);
+        }
 
         v.color1 = color;
         v.color2 = bgcolor;
@@ -263,16 +251,16 @@ exports.versions = {
       for (const item of result) {
         array.push(
           `
-.card_${item.id}_${item.version} {
+.card_${item.id}_${item.vname} {
   --bg: url(./${item.hd.substring(item.hd.lastIndexOf('/') + 1)});
   --line: ${item.color2};
   --mask: ${item.color4};
   color: ${item.color1};
 }
-.ut-item_tiny.card_${item.id}_${item.version} {
+.ut-item_tiny.card_${item.id}_${item.vname} {
   --bg: url(./tiny_${item.hd.substring(item.hd.lastIndexOf('/') + 1)});
 }
-.rating_${item.id}_${item.version} {
+.rating_${item.id}_${item.vname} {
   color: ${item.color5};
   background: ${item.color6};
 }
@@ -611,9 +599,12 @@ ${array.join('\r\n')}`;
       const result = Object.values(previous);
       result.sort((a, b) => a.id - b.id)
       for (const item of result) {
+        const name = `${item.id}_${item.vname}`;
+        if (dic[name])
+          continue;
         array.push(
           `
-.card_${item.id}_${item.version} {
+.card_${name} {
   --bg: url(./${item.hd.substring(item.hd.lastIndexOf('/') + 1)});
   --line: ${item.color2};
   --mask: ${item.color4};
@@ -621,10 +612,10 @@ ${array.join('\r\n')}`;
   --ps: ${item.color8};
   color: ${item.color1};
 }
-.ut-item_tiny.card_${item.id}_${item.version} {
+.ut-item_tiny.card_${name} {
   --bg: url(./tiny_${item.hd.substring(item.hd.lastIndexOf('/') + 1)});
 }
-.rating_${item.id}_${item.version} {
+.rating_${name} {
   color: ${item.color5};
   background: ${item.color6};
 }
@@ -783,12 +774,13 @@ ${array.join('\r\n')}`;
 .ut-item_left .alt-pos > div {
   background-color: var(--sub);
   border-radius: 50%;
-  width: 2.5em;
-  height: 2.5em;
+  width: 2em;
+  height: 2em;
   display: flex;
   align-items: center;
   justify-content: center;
-  margin-bottom: .15em
+  margin-bottom: .15em;
+  border: 0.1em solid var(--ps);
 }
 
 .ut-item_left .playstyle {
@@ -929,8 +921,8 @@ ${array.join('\r\n')}`;
   </div>
   <div class="ut-item_ccl">
     <img class="ut-item_flag" src="https://cdn.futbin.com/content/fifa24/img/nation/27.png">
-    <img class="ut-item_club" src="https://cdn.futbin.com/content/fifa24/img/clubs/114605.png">
     <img class="ut-item_crest" src="https://cdn.futbin.com/content/fifa24/img/league/31.png">
+    <img class="ut-item_club" src="https://cdn.futbin.com/content/fifa24/img/clubs/114605.png">
   </div>
 </div>
 
@@ -979,8 +971,8 @@ ${array.join('\r\n')}`;
   </div>
   <div class="ut-item_ccl">
     <img class="ut-item_flag" src="https://cdn.futbin.com/content/fifa24/img/nation/27.png">
-    <img class="ut-item_club" src="https://cdn.futbin.com/content/fifa24/img/clubs/114605.png">
     <img class="ut-item_crest" src="https://cdn.futbin.com/content/fifa24/img/league/31.png">
+    <img class="ut-item_club" src="https://cdn.futbin.com/content/fifa24/img/clubs/114605.png">
   </div>
 </div>
 */
@@ -1009,7 +1001,8 @@ ${array.join('\r\n')}`;
 }
 
 .ut-item_tiny .ut-item_status,
-.ut-item_tiny .ut-item_left {
+.ut-item_tiny .ut-item_left,
+.ut-item_tiny .ut-item_ccl .ut-item_crest {
   display: none;
 }
 
@@ -1017,7 +1010,7 @@ ${array.join('\r\n')}`;
   position: absolute;
   top: 8em;
   left: 3em;
-  flex-direction: column;
+  flex-direction: column-reverse;
   height: auto;
 }
 

@@ -170,21 +170,26 @@ exports.pageCrawl = async (config) => {
         let timeout = 0;
         console.log("Wait page selector", config.wait)
         try {
-          const result = page.evaluate(async (wait) => {
-            await new Promise(r => {
+          const result = Promise.race([page.evaluate(async (wait) => {
+            return await new Promise(r => {
               const timer = setInterval(() => {
                 if (document.querySelector(wait)) {
-                  r();
+                  r(true);
                   clearInterval(timer);
                 }
               }, 200);
             })
-          }, config.wait).catch(() => { });
-          // 防止超时卡住
-          timeout = setTimeout(() => {
-            Promise.reject(result);
-          }, 5000);
-          await result;
+          }, config.wait),
+            // 防止超时卡住
+            new Promise(r => {
+              timeout = setTimeout(() => {
+                r(false);
+              }, 5000);
+            })
+          ]);
+          clearTimeout(timeout);
+          if (!await result)
+            continue;
         } catch {
           continue;
         }
@@ -230,17 +235,19 @@ exports.pageCrawl = async (config) => {
       break;
 
     // 等待翻页完成
-    await new Promise(resolve => {
-      const timeout = setTimeout(resolve, 2000);
-      const timer = setInterval(() => {
-        if (href != page.url()) {
-          resolve();
-          clearInterval(timer);
-          clearTimeout(timeout);
-        }
-      }, 200);
-    });
-    console.log("Next page:", page.url());
+    do {
+      await new Promise(resolve => {
+        const timeout = setTimeout(resolve, 2000);
+        const timer = setInterval(() => {
+          if (href != page.url()) {
+            resolve();
+            clearInterval(timer);
+            clearTimeout(timeout);
+          }
+        }, 200);
+      });
+      console.log("Next page:", page.url());
+    } while (!page.url().startsWith('http'))
   }
 
   crawlover(config, datas);
