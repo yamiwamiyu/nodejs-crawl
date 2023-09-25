@@ -764,6 +764,7 @@ ${array.join('\r\n')}`;
   display: flex;
   flex-direction: column;
   align-items: center;
+  width: 1.5em;
 }
 
 .ut-item_left .alt-pos {
@@ -777,7 +778,8 @@ ${array.join('\r\n')}`;
   width: 2em;
   height: 2em;
   display: flex;
-  align-items: center;
+  align-items: end;
+  line-height: 1.65;
   justify-content: center;
   margin-bottom: .15em;
   border: 0.1em solid var(--ps);
