@@ -1010,14 +1010,335 @@ ${array.join('\r\n')}`;
 
 .ut-item_tiny .ut-item_ccl {
   position: absolute;
-  top: 8em;
-  left: 3em;
+  top: 8.25em;
+  left: 2.5em;
   flex-direction: column-reverse;
   height: auto;
 }
 
 .ut-item_tiny .ut-item_ccl > img {
+  width: 2.5em;
+}
+${array.join('\r\n')}`;
+    }
+  },
+  /** @type {version} */
+  fc24mt: {
+    name: "index",
+    url: "https://www.futbin.com/24/players",
+    dir: "crawler/card-bg-24/",
+    css: function (previous) {
+      const array = [];
+      const result = Object.values(previous);
+      result.sort((a, b) => a.id - b.id)
+      const dic = {};
+      for (const item of result) {
+        let name;
+        if (item.id <= 3) {
+          name = item.hd.substring(item.hd.lastIndexOf('/') + 1);
+          name = name.substring(0, name.indexOf('.'));
+        } else {
+          name = `${item.id}_${item.vname}`;
+        }
+        if (dic[name])
+          continue;
+        dic[name] = item;
+        array.push(
+          `
+.card_${name} {
+  --bg: url(./${item.hd.substring(item.hd.lastIndexOf('/') + 1)});
+  --line: ${item.color2};
+  --mask: ${item.color4};
+  --sub: ${item.color7};
+  --ps: ${item.color8};
+  color: ${item.color1};
+}
+.ut-item_tiny.card_${name} {
+  --bg: url(./tiny_${item.hd.substring(item.hd.lastIndexOf('/') + 1)});
+}
+.rating_${name} {
+  color: ${item.color5};
+  background: ${item.color6};
+}
+`)
+      }
+      return `
+@font-face {
+  font-family: 'Playstyles';
+  src: url("./playstyles.eot?#iefix") format("embedded-opentype"),url("./playstyles.woff") format("woff"),url("./playstyles.ttf") format("truetype"),url("./playstyles.svg#Glyphter") format("svg");
+  font-weight: normal;
+  font-style: normal
+}
+[class*='fb-icon-']:before {
+  display: inline-block;
+  font-family: 'Playstyles';
+  font-style: normal;
+  font-weight: normal;
+  line-height: 1;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale
+}
+.fb-icon-ballcontrol-firsttouch:before { content: '\\0042' }
+.fb-icon-ballcontrol-flair:before { content: '\\0043' }
+.fb-icon-ballcontrol-pressproven:before { content: '\\0044' }
+.fb-icon-ballcontrol-rapid:before { content: '\\0045' }
+.fb-icon-ballcontrol-technical:before { content: '\\0046' }
+.fb-icon-ballcontrol-trickster:before { content: '\\0047' }
+.fb-icon-defending-anticipate:before { content: '\\0048' }
+.fb-icon-defending-block:before { content: '\\0049' }
+.fb-icon-defending-bruiser:before { content: '\\004a' }
+.fb-icon-defending-intercept:before { content: '\\004b' }
+.fb-icon-defending-jockey:before { content: '\\004c' }
+.fb-icon-defending-slidetackle:before { content: '\\004d' }
+.fb-icon-gk-crosscatcher:before { content: '\\004e' }
+.fb-icon-gk-farreach:before { content: '\\004f' }
+.fb-icon-gk-farthrow:before { content: '\\0050' }
+.fb-icon-gk-footwork:before { content: '\\0051' }
+.fb-icon-gk-quickreflexes:before { content: '\\0052' }
+.fb-icon-gk-rushout:before { content: '\\0053' }
+.fb-icon-passing-incisivepass:before { content: '\\0054' }
+.fb-icon-passing-longballpass:before { content: '\\0055' }
+.fb-icon-passing-pingedpass:before { content: '\\0056' }
+.fb-icon-passing-tikitaka:before { content: '\\0057' }
+.fb-icon-passing-whippedcrosser:before { content: '\\0058' }
+.fb-icon-physical-acrobatic:before { content: '\\0059' }
+.fb-icon-physical-aerial:before { content: '\\005a' }
+.fb-icon-physical-longthrow:before { content: '\\0061' }
+.fb-icon-physical-quickstep:before { content: '\\0062' }
+.fb-icon-physical-relentless:before { content: '\\0063' }
+.fb-icon-physical-trivela:before { content: '\\0064' }
+.fb-icon-scoring-chipshot:before { content: '\\0065' }
+.fb-icon-scoring-deadball:before { content: '\\0066' }
+.fb-icon-scoring-finesseshot:before { content: '\\0067' }
+.fb-icon-scoring-powerheader:before { content: '\\0068' }
+.fb-icon-scoring-powershot:before { content: '\\0069' }
+@font-face {
+  font-family: Cruyff-Bold;
+  src: url(./CruyffSans-Bold.ttf) format("truetype");
+}
+@font-face {
+  font-family: Cruyff-Medium;
+  src: url(./CruyffSans-Medium.ttf) format("truetype");
+}
+@font-face {
+  font-family: Cruyff-Regular;
+  src: url(./CruyffSans-Regular.ttf) format("truetype");
+}
+
+.ut-item {
+  font-size: max(14px, 1em);
+  display: inline-flex;
+  flex-direction: column;
+  -ms-flex-wrap: wrap;
+  flex-wrap: wrap;
+  position: relative;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: 105%;
+  width: 13.75em;
+  height: 19.0625em;
+  flex: none;
+  transform-origin: left;
+  transition: all .25s;
+  background-image: var(--bg);
+  font-family: Cruyff-Medium;
+  line-height: 1;
+}
+
+.ut-item > *:not(.ut-item_headshot) {
+  position: relative;
+}
+
+.ut-item_glow {
+  animation: ut-item_glow 3s infinite;
+  --glow: 243, 146, 0;
+}
+
+@keyframes ut-item_glow {
+  0%, 100% {
+    filter: drop-shadow(1px -3px 15px rgba(var(--glow), .2));
+  }
+  50% {
+    filter: drop-shadow(1px -3px 15px rgba(var(--glow), .8));
+  }
+}
+
+.ut-item_meta {
+  -ms-flex-align: center;
+  align-items: center;
+  display: -ms-flexbox;
+  display: flex;
+  -ms-flex-direction: column;
+  flex-direction: column;
+  width: 1.375em;
+  height: 9.75em;
+  margin-top: 2.5em;
+  margin-left: 3em;
+}
+
+.ut-item_rating {
+  font-family: Cruyff-Bold;
+  font-size: 1.875em;
+}
+
+.ut-item_position {
+  font-size: .875em;
+}
+
+.ut-item_left {
+  position: absolute;
+  left: -180%;
+  top: 1.4em;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
   width: 1.5em;
+}
+
+.ut-item_left .alt-pos {
+  font-size: .75em;
+  font-family: Cruyff-Medium;
+}
+
+.ut-item_left .alt-pos > div {
+  background-color: var(--sub);
+  border-radius: 50%;
+  width: 2em;
+  height: 2em;
+  display: flex;
+  align-items: end;
+  line-height: 1.65;
+  justify-content: center;
+  margin-bottom: .15em;
+  border: 0.1em solid var(--ps);
+}
+
+.ut-item_left .playstyle {
+  position: absolute;
+  top: 5.5em;
+}
+
+.ut-item_left .playstyle > div {
+  background-color: var(--ps);
+  clip-path: polygon(25% 0, 75% 0%, 100% 40%, 50% 100%, 0 40%);
+  width: 1.875em;
+  height: 1.875em;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-bottom: .15em;
+}
+
+.ut-item_left .playstyle > div:before {
+  background-color: var(--sub);
+  clip-path: polygon(25% 0, 75% 0%, 100% 40%, 50% 100%, 0 40%);
+  font-size: 1.625em;
+  margin-top: -1px;
+}
+
+.ut-item_headshot {
+  position: absolute;
+  width: 67%;
+  left: 25%;
+  top: 14.5%;
+}
+
+.ut-item_headshot.special {
+  width: 104.1%;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+}
+
+.ut-item_headshot.special.tiny {
+  width: 80%;
+}
+
+.ut-item_name {
+  font-size: 1.375em;
+  letter-spacing: -.2px;
+  white-space: nowrap;
+  text-align: center;
+  max-width: 100%;
+}
+
+.ut-item_status {
+  display: flex;
+  margin: 0 auto;
+  gap: 0.25em;
+}
+
+.ut-item_status > div {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.ut-item_status > div > span:last-child {
+  font-size: 1em;
+}
+
+.ut-item_status > div > span:first-child {
+  font-family: Cruyff-Regular;
+  font-size: .75em;
+}
+
+.ut-item_ccl {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 1em;
+  gap: 0.25em;
+}
+
+.ut-item_ccl > img {
+  height: auto;
+  width: 1em;
+  object-fit: contain;
+}
+
+.ut-item_tiny {
+  background-size: 100%;
+}
+
+.ut-item_tiny .ut-item_meta {
+  height: 8.5em;
+  margin-top: 5em;
+}
+
+.ut-item_tiny .ut-item_headshot {
+  top: 30%;
+  width: 54%;
+  left: 33%;
+}
+
+.ut-item_tiny .ut-item_headshot.special {
+  top: 53%;
+  width: 82%;
+  left: 50%;
+}
+
+.ut-item_tiny .ut-item_status,
+.ut-item_tiny .ut-item_left,
+.ut-item_tiny .ut-item_ccl .ut-item_crest {
+  display: none;
+}
+
+.ut-item_tiny .ut-item_ccl {
+  position: absolute;
+  top: 8.25em;
+  left: 2.5em;
+  flex-direction: column-reverse;
+  height: auto;
+}
+
+.ut-item_tiny .ut-item_ccl > img {
+  width: 2.5em;
 }
 ${array.join('\r\n')}`;
     }
