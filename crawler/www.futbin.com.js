@@ -62,6 +62,11 @@ exports.crawl = function (version) {
         if (!element || !v.hd || !v.tiny)
           return [v];
 
+        // 一个分类里可能有多种类型的卡，认为该类型是混合类型，跳过它
+        let temp;
+        if (![...document.querySelectorAll(".player_tr_1 td:nth-child(3) span")].map(i => i.classList.value).every(i => { temp ??= i; return i == temp }))
+          return [v];
+
         // 找到一个有副位置的球员卡打开，可以采集到它的背景色和边框色
         const notEmpty = document.querySelector("tr[data-url] td:nth-child(4) :nth-child(2):not(:empty)");
         if (notEmpty)
