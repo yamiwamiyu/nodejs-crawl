@@ -274,4 +274,4 @@ exports.example5 = async () => {
 // })
 
 const futbin = require('./www.futbin.com');
-futbin.css(futbin.versions.fc24);
+futbin.crawl(futbin.versions.fc24mt);

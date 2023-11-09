@@ -157,7 +157,7 @@ exports.pageCrawl = async (config) => {
     });
   }
   // 去到你要的网页
-  await page.goto(config.url, { timeout: 0 });
+  page.goto(config.url, { timeout: 0 });
   while (true) {
     if (config.json) {
       console.log("Wait response data")
@@ -213,22 +213,26 @@ exports.pageCrawl = async (config) => {
     }
     
     // 翻页 | 结束
-    console.log("Turn the next page");
+    console.log("Turn the next page", (typeof (config.next) == 'string') ? config.next : config.next(pageCount, page));
+    // console.log('随便执行一个方法', await page.evaluate(async function test(p) {
+    //   return p;
+    // }, 'abc'));
     const href = page.url();
-    const over = await page.evaluate((next) => {
+    const over = await page.evaluate(async function test(next) {
       // 直接返回
       if (next?.indexOf('/')) {
         location.href = next;
-        return;
+        return await undefined;
       }
       // 获取下一页按钮
       const button = next && document.querySelector(next);
       // 不能翻页则结束
       if (!button || button.disabled)
-        return true;
+        return await true;
       else
         // 点击翻页
         button.click();
+      await undefined;
     }, (typeof (config.next) == 'string') ? config.next : config.next(pageCount, page))
     // 不能下一页，结束爬行
     if (over)
@@ -339,8 +343,8 @@ exports.download = async (url, filename, exists = true) => {
       const buffer = Buffer.from(response.data, 'binary');
       fs.writeFileSync(filename, buffer);
       console.log('download completed!', url);
-    } catch (error) {
-      console.log('download error!', url, error);
+    } catch {
+      console.log('download error!', url);
       return Promise.reject(url);
     }
   }

@@ -54,6 +54,7 @@ exports.crawl = function (version) {
     /** @param {card} v */
     async dom(v) {
       // bug: 可能出现 404 的情况
+      await undefined;
       if (v) {
         // 鼠标 Hover 一个的球员以获取卡片的样式信息
         let element = document.querySelector("tr[data-url] a");
@@ -209,7 +210,7 @@ exports.crawl = function (version) {
           const name = v.tiny.substring(v.tiny.lastIndexOf('/') + 1);
           if (!current.length)
             console.log("正在下载卡牌图片...");
-          await download(v.tiny, DIR + "tiny_" + name).catch(() => {});
+          await download(v.tiny, DIR + "tiny_" + name).catch(() => { });
           await download(v.hd, DIR + name).catch(() => { });
           current.push(v);
         }
@@ -1049,7 +1050,7 @@ ${array.join('\r\n')}`;
 }
 
 .ut-item_left .playstyle > div:before {
-  background-color: var(--sub);
+  color: var(--sub);
   clip-path: polygon(25% 0, 75% 0%, 100% 40%, 50% 100%, 0 40%);
   font-size: 1.625em;
   margin-top: -1px;
@@ -1722,7 +1723,7 @@ ${array.join('\r\n')}`;
 }
 
 .ut-item_left .playstyle > div:before {
-  background-color: var(--sub);
+  color: var(--sub);
   clip-path: polygon(25% 0, 75% 0%, 100% 40%, 50% 100%, 0 40%);
   font-size: 1.625em;
   margin-top: -1px;
