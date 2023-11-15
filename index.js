@@ -164,7 +164,7 @@ exports.pageCrawl = async (config) => {
       // 等待获取数据
       await new Promise(resolve => turning = resolve);
     }
-    
+
     if (config.wait) {
       while (true) {
         let timeout = 0;
@@ -180,12 +180,12 @@ exports.pageCrawl = async (config) => {
               }, 200);
             })
           }, config.wait),
-            // 防止超时卡住
-            new Promise(r => {
-              timeout = setTimeout(() => {
-                r(false);
-              }, 5000);
-            })
+          // 防止超时卡住
+          new Promise(r => {
+            timeout = setTimeout(() => {
+              r(false);
+            }, 5000);
+          })
           ]);
           clearTimeout(timeout);
           if (!await result)
@@ -198,7 +198,7 @@ exports.pageCrawl = async (config) => {
       }
       // await page.waitForSelector(config.wait);
     }
-    
+
     if (config.dom) {
       console.log("Crawling page data");
       // 从页面获取数据
@@ -211,7 +211,7 @@ exports.pageCrawl = async (config) => {
         pageCount++;
       }
     }
-    
+
     // 翻页 | 结束
     console.log("Turn the next page", (typeof (config.next) == 'string') ? config.next : config.next(pageCount, page));
     // console.log('随便执行一个方法', await page.evaluate(async function test(p) {
@@ -339,12 +339,24 @@ function crawlover(config, datas) {
 exports.download = async (url, filename, exists = true) => {
   if (!fs.existsSync(filename)) {
     try {
-      const response = await axios.get(url, { responseType: 'arraybuffer' });
-      const buffer = Buffer.from(response.data, 'binary');
+      // const response = await axios({
+      //   url,
+      //   method: 'GET',
+      //   responseType: 'arraybuffer',
+      //   headers: {
+      //     'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36',
+      //     'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7',
+      //   }
+      // });
+      // const buffer = Buffer.from(response.data, 'binary');
+      const buffer = await fetch(url).then(async (res) => {
+        const buffer = await res.arrayBuffer();
+        return new Uint8Array(buffer);
+      });
       fs.writeFileSync(filename, buffer);
       console.log('download completed!', url);
-    } catch {
-      console.log('download error!', url);
+    } catch (err) {
+      console.log('download error!', url, err);
       return Promise.reject(url);
     }
   }

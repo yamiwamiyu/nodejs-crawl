@@ -9,6 +9,7 @@ const path = require('path');
  * @property {string} vname - 版本名2，有些筛选的和球员卡版本名不一致，这个是球员卡的版本名，例如 gold | eoae_icon | futties 等
  * @property {string} hd - 高清卡图
  * @property {string} tiny - 小卡图
+ * @property {boolean} skip - 混合类型，下次跳过这个类型
  * @property {boolean} special - 球员卡头像是否是特殊的
  * @property {string} color1 - 球员卡文字颜色
  * @property {string} color2 - 球员卡线条颜色
@@ -65,8 +66,11 @@ exports.crawl = function (version) {
 
         // 一个分类里可能有多种类型的卡，认为该类型是混合类型，跳过它
         let temp;
-        if (![...document.querySelectorAll(".player_tr_1 td:nth-child(3) span")].map(i => i.classList.value).every(i => { temp ??= i; return i == temp }))
+        if (![...document.querySelectorAll(".player_tr_1 td:nth-child(3) span")].map(i => i.classList.value).every(i => { temp ??= i; return i == temp })) {
+          console.log('混合类型', v);
+          v.skip = true;
           return [v];
+        }
 
         // 找到一个有副位置的球员卡打开，可以采集到它的背景色和边框色
         const notEmpty = document.querySelector("tr[data-url] td:nth-child(4) :nth-child(2):not(:empty)");
@@ -148,7 +152,7 @@ exports.crawl = function (version) {
         var glindex = glcolor.indexOf('rgba(') + 5;
         glcolor = glcolor.substring(glindex, glcolor.lastIndexOf(','));
 
-        // todo: fc-24 副位置和球风暂时只能打开球员卡才能采集到
+        // fc-24 副位置和球风暂时只能打开球员卡才能采集到
 
         // 副位置背景色
         var sub = dom.querySelector(".pcdisplay-alt-pos > div");
@@ -189,7 +193,7 @@ exports.crawl = function (version) {
     async ondata(versions) {
       if (current.length) {
         const v = versions[0];
-        if (v.color1) {
+        if (v.color1 || v.skip) {
           // 成功
           previous[v.version] = v;
           console.log("新卡片类型：", v.version);
@@ -210,8 +214,8 @@ exports.crawl = function (version) {
           const name = v.tiny.substring(v.tiny.lastIndexOf('/') + 1);
           if (!current.length)
             console.log("正在下载卡牌图片...");
-          await download(v.tiny, DIR + "tiny_" + name).catch(() => { });
-          await download(v.hd, DIR + name).catch(() => { });
+          await download(v.tiny, DIR + "tiny_" + name).catch(() => { v.tiny = undefined });
+          await download(v.hd, DIR + name).catch(() => { v.hd = undefined });
           current.push(v);
         }
         if (current.length) {
@@ -606,7 +610,7 @@ ${array.join('\r\n')}`;
       result.sort((a, b) => a.id - b.id)
       for (const item of result) {
         const name = `${item.id}_${item.vname}`;
-        if (dic[name])
+        if (dic[name] || item.skip)
           continue;
         array.push(
           `
@@ -1288,7 +1292,7 @@ ${array.join('\r\n')}`;
         } else {
           name = `${item.id}_${item.vname}`;
         }
-        if (dic[name])
+        if (dic[name] || item.skip)
           continue;
         dic[name] = item;
         array.push(
